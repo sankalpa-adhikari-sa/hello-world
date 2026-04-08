@@ -1,18 +1,18 @@
-import type { Editor } from "@tiptap/react"
-import { useCurrentEditor, useEditorState } from "@tiptap/react"
-import { useEffect, useState } from "react"
+import { useCurrentEditor, useEditorState } from '@tiptap/react'
+import { useEffect, useState } from 'react'
+import type { Editor } from '@tiptap/react'
 
 function getActivePageEditor(editor: Editor): Editor | null {
   const storage = editor.storage as unknown as Record<string, unknown>
   const pages = storage.pages as { activeEditor?: Editor | null } | undefined
-  if (!pages || !("activeEditor" in pages)) return null
+  if (!pages || !('activeEditor' in pages)) return null
   return pages.activeEditor ?? null
 }
 
 export function useTiptapEditor(providedEditor?: Editor | null): {
   editor: Editor | null
-  editorState?: Editor["state"]
-  canCommand?: Editor["can"]
+  editorState?: Editor['state']
+  canCommand?: Editor['can']
 } {
   const { editor: coreEditor } = useCurrentEditor()
   const mainEditor = providedEditor ?? coreEditor
@@ -30,12 +30,12 @@ export function useTiptapEditor(providedEditor?: Editor | null): {
 
     updateHandler()
 
-    mainEditor.on("update", updateHandler)
-    mainEditor.on("selectionUpdate", updateHandler)
+    mainEditor.on('update', updateHandler)
+    mainEditor.on('selectionUpdate', updateHandler)
 
     return () => {
-      mainEditor.off("update", updateHandler)
-      mainEditor.off("selectionUpdate", updateHandler)
+      mainEditor.off('update', updateHandler)
+      mainEditor.off('selectionUpdate', updateHandler)
     }
   }, [mainEditor])
 
@@ -44,9 +44,9 @@ export function useTiptapEditor(providedEditor?: Editor | null): {
 
     const handleDestroy = () => setStorageEditor(null)
 
-    storageEditor.on("destroy", handleDestroy)
+    storageEditor.on('destroy', handleDestroy)
     return () => {
-      storageEditor.off("destroy", handleDestroy)
+      storageEditor.off('destroy', handleDestroy)
     }
   }, [storageEditor])
 

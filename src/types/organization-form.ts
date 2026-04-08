@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import {
   COMPANY_SIZE,
   INDUSTRY_TYPE,
@@ -6,7 +7,6 @@ import {
   PROJECT_STATUS,
   RESOURCE_SOURCE,
 } from '@/constants/enums'
-import { z } from 'zod'
 
 const projectStatusEnum = z.enum(
   PROJECT_STATUS.map((group) => group.value) as [string, ...Array<string>],

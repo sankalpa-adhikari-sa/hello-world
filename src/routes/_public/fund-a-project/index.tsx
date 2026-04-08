@@ -21,7 +21,11 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import {
   Select,
   SelectContent,
@@ -46,11 +50,16 @@ const LEVEL_VALUE_SET = new Set<string>(FUND_PROJECT_LEVEL_KEYS)
 
 function parseCommaList(raw: string | undefined): Array<string> {
   if (!raw?.trim()) return []
-  return raw.split(',').map((s) => s.trim()).filter(Boolean)
+  return raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
 }
 
 function filterValidTagIds(raw: string | undefined): Array<string> {
-  return parseCommaList(raw).filter((id) => z.string().uuid().safeParse(id).success)
+  return parseCommaList(raw).filter(
+    (id) => z.string().uuid().safeParse(id).success,
+  )
 }
 
 function filterValidLevels(raw: string | undefined): Array<string> {
@@ -96,9 +105,7 @@ function RouteComponent() {
         featuredOnly: search.featured === true,
         projectLevels:
           levelValues.length > 0
-            ? (levelValues as Array<
-                (typeof FUND_PROJECT_LEVEL_KEYS)[number]
-              >)
+            ? (levelValues as Array<(typeof FUND_PROJECT_LEVEL_KEYS)[number]>)
             : undefined,
       },
     }),
@@ -120,12 +127,7 @@ function RouteComponent() {
 
   const sessionUserId = authPayload?.currentUser?.id ?? null
 
-  const {
-    data,
-    isPending,
-    isError,
-    isFetching,
-  } = useQuery({
+  const { data, isPending, isError, isFetching } = useQuery({
     queryKey: ['fund-a-projects', 'list', listQueryInput],
     queryFn: () => getFundAProjectsSfn({ data: listQueryInput }),
   })
@@ -146,7 +148,9 @@ function RouteComponent() {
 
   const tagsQuery = useQuery(listTagsForRequestsFormQO())
 
-  const setSearch = (patch: Partial<z.infer<typeof fundAPublicListSearchSchema>>) => {
+  const setSearch = (
+    patch: Partial<z.infer<typeof fundAPublicListSearchSchema>>,
+  ) => {
     navigate({
       search: (prev) => ({ ...prev, ...patch }),
     })
@@ -209,9 +213,9 @@ function RouteComponent() {
 
   const hasActiveFilters = Boolean(
     search.q?.trim() ||
-      tagIds.length ||
-      levelValues.length ||
-      search.featured === true,
+    tagIds.length ||
+    levelValues.length ||
+    search.featured === true,
   )
 
   return (
@@ -323,7 +327,9 @@ function RouteComponent() {
                 <SelectContent>
                   <SelectItem value="newest">Newest first</SelectItem>
                   <SelectItem value="oldest">Oldest first</SelectItem>
-                  <SelectItem value="urgent">Most urgent (least funded)</SelectItem>
+                  <SelectItem value="urgent">
+                    Most urgent (least funded)
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -447,7 +453,9 @@ function RouteComponent() {
                           ))}
                         </div>
                       ) : (
-                        <p className="text-muted-foreground text-xs">No tags yet.</p>
+                        <p className="text-muted-foreground text-xs">
+                          No tags yet.
+                        </p>
                       )}
                     </div>
                     <Button

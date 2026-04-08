@@ -1,10 +1,9 @@
-import { db } from '@/db'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
-import { organization } from 'better-auth/plugins'
-import { ac, owner, admin, member } from '@/lib/auth/permissions'
-import { lastLoginMethod } from 'better-auth/plugins'
+import { lastLoginMethod, organization  } from 'better-auth/plugins'
+import { ac, admin, member, owner } from '@/lib/auth/permissions'
+import { db } from '@/db'
 import { organizationProfile } from '@/db/schema/organization.schema'
 import { userProfile } from '@/db/schema/auth.schema'
 

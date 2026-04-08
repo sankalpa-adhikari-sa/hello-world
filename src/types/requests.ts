@@ -1,6 +1,6 @@
+import { z } from 'zod'
 import type { JSONContent } from '@tiptap/core'
 import { REQUEST_TYPE } from '@/constants/enums'
-import { z } from 'zod'
 
 export type RequestTypeValue = (typeof REQUEST_TYPE)[number]['value']
 
@@ -9,7 +9,7 @@ export interface RequestCardProps {
   title: string
   description: string
   requestType: RequestTypeValue
-  tags: string[]
+  tags: Array<string>
   isOpen: boolean
   fulfillLabel?: string
   detailsLabel?: string

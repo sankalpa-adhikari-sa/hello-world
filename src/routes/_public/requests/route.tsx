@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet } from '@tanstack/react-router'
+import { Outlet, createFileRoute } from '@tanstack/react-router'
 
 /**
  * Layout so list search params (`index`) are not inherited by `/requests/$id`.

@@ -50,7 +50,10 @@ export function RichTextEditor({
       editable,
       editorProps: {
         attributes: {
-          class: cn('max-w-none text-xs leading-relaxed focus:outline-none', editorClassName),
+          class: cn(
+            'max-w-none text-xs leading-relaxed focus:outline-none',
+            editorClassName,
+          ),
         },
       },
       onUpdate: ({ editor: ed }) => {

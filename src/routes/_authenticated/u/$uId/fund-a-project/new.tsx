@@ -2,7 +2,9 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { FundAProjectForm } from '@/components/core/fund-a-project/fund-a-project-form'
 
-export const Route = createFileRoute('/_authenticated/u/$uId/fund-a-project/new')({
+export const Route = createFileRoute(
+  '/_authenticated/u/$uId/fund-a-project/new',
+)({
   component: RouteComponent,
 })
 

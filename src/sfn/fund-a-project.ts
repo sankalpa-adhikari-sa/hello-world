@@ -82,8 +82,7 @@ function toPublicFundAProject(row: FundWithJoins): PublicFundAProject {
   const card: FundmeCardProps & { id: string } = {
     id: base.id,
     badge: FUND_PROJECT_LEVEL_LABEL[level],
-    name:
-      createdBy.profile?.displayName?.trim() || createdBy.name || 'Creator',
+    name: createdBy.profile?.displayName?.trim() || createdBy.name || 'Creator',
     dept: cardAffiliationLine(createdBy.profile),
     title: base.title,
     progress: pct,
@@ -135,9 +134,7 @@ export const getFundAProjectByIdInputSchema = z.object({
  * Public (no auth).
  */
 export const getFundAProjectById = createServerFn({ method: 'GET' })
-  .inputValidator((data: unknown) =>
-    getFundAProjectByIdInputSchema.parse(data),
-  )
+  .inputValidator((data: unknown) => getFundAProjectByIdInputSchema.parse(data))
   .handler(async ({ data }) => loadFundAProjectWithJoins(data.id))
 
 export const getFundAProjectByIdQO = (id: string) =>
@@ -292,7 +289,9 @@ export const getFundAProjects = createServerFn({ method: 'GET' })
     }
   })
 
-export const getFundAProjectsQO = (input: Partial<GetFundAProjectsInput> = {}) => {
+export const getFundAProjectsQO = (
+  input: Partial<GetFundAProjectsInput> = {},
+) => {
   const parsed = getFundAProjectsInputSchema.parse(input)
   return queryOptions({
     queryKey: ['fund-a-projects', parsed],
@@ -321,9 +320,7 @@ export const createFundAProject = createServerFn({ method: 'POST' })
   .inputValidator((data: unknown) => createFundAProjectSchema.parse(data))
   .handler(async ({ data }) => {
     const { currentUser } = await getCurrentUser()
-    const uniqueTagIds = data.tagIds?.length
-      ? [...new Set(data.tagIds)]
-      : []
+    const uniqueTagIds = data.tagIds?.length ? [...new Set(data.tagIds)] : []
 
     return await db.transaction(async (tx) => {
       const [row] = await tx

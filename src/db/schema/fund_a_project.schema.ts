@@ -27,7 +27,9 @@ export const fundAProject = pgTable('fund_a_project', {
   targetAmount: integer('target_amount').notNull(),
   fundedAmount: integer('funded_amount').notNull(),
   isFeatured: boolean().default(false),
-  projectLevel: fundProjectLevelEnum('project_level').notNull().default('undergrad'),
+  projectLevel: fundProjectLevelEnum('project_level')
+    .notNull()
+    .default('undergrad'),
   coverImageUrl: text('cover_image_url'),
   coverImageAlt: text('cover_image_alt'),
   content: jsonb('content').$type<Record<string, any>>().notNull(),
@@ -59,21 +61,27 @@ export const fundAProjectTags = pgTable(
   (t) => [primaryKey({ columns: [t.fundAProjectId, t.tagId] })],
 )
 
-export const fundAProjectRelations = relations(fundAProject, ({ one, many }) => ({
-  createdBy: one(user, {
-    fields: [fundAProject.createdById],
-    references: [user.id],
+export const fundAProjectRelations = relations(
+  fundAProject,
+  ({ one, many }) => ({
+    createdBy: one(user, {
+      fields: [fundAProject.createdById],
+      references: [user.id],
+    }),
+    fundAProjectTags: many(fundAProjectTags),
   }),
-  fundAProjectTags: many(fundAProjectTags),
-}))
+)
 
-export const fundAProjectTagsRelations = relations(fundAProjectTags, ({ one }) => ({
-  fundAProject: one(fundAProject, {
-    fields: [fundAProjectTags.fundAProjectId],
-    references: [fundAProject.id],
+export const fundAProjectTagsRelations = relations(
+  fundAProjectTags,
+  ({ one }) => ({
+    fundAProject: one(fundAProject, {
+      fields: [fundAProjectTags.fundAProjectId],
+      references: [fundAProject.id],
+    }),
+    tag: one(tags, {
+      fields: [fundAProjectTags.tagId],
+      references: [tags.id],
+    }),
   }),
-  tag: one(tags, {
-    fields: [fundAProjectTags.tagId],
-    references: [tags.id],
-  }),
-}))
+)

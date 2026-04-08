@@ -14,10 +14,8 @@ import {
 import { z } from 'zod'
 
 import { db } from '@/db'
-import {
-  events,
-  organizationEventTags,
-} from '@/db/schema/organization.schema'
+import { events, organizationEventTags } from '@/db/schema/organization.schema'
+
 type EventRow = typeof events.$inferSelect
 type EventWithJoins = EventRow & {
   organization: { id: string; name: string }
@@ -62,9 +60,7 @@ export const getPublicEventByIdInputSchema = z.object({
  * Public (no auth).
  */
 export const getPublicEventById = createServerFn({ method: 'GET' })
-  .inputValidator((data: unknown) =>
-    getPublicEventByIdInputSchema.parse(data),
-  )
+  .inputValidator((data: unknown) => getPublicEventByIdInputSchema.parse(data))
   .handler(async ({ data }) => loadPublicEventById(data.id))
 
 export const getPublicEventByIdQO = (id: string) =>
@@ -114,10 +110,7 @@ export const getPublicEvents = createServerFn({ method: 'GET' })
     if (q?.trim()) {
       const pattern = `%${q.trim()}%`
       filters.push(
-        or(
-          ilike(events.title, pattern),
-          ilike(events.subtitle, pattern),
-        )!,
+        or(ilike(events.title, pattern), ilike(events.subtitle, pattern))!,
       )
     }
     if (eventTypes?.length) {
@@ -156,7 +149,9 @@ export const getPublicEvents = createServerFn({ method: 'GET' })
     return rows.map(toPublicEvent)
   })
 
-export const getPublicEventsQO = (input: Partial<GetPublicEventsInput> = {}) => {
+export const getPublicEventsQO = (
+  input: Partial<GetPublicEventsInput> = {},
+) => {
   const parsed = getPublicEventsInputSchema.parse(input)
   return queryOptions({
     queryKey: ['public-events', parsed],

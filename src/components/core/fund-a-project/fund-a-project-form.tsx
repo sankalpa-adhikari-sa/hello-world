@@ -6,6 +6,10 @@ import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { toast } from 'sonner'
 
+import type {
+  FundAProjectCreateFormValues,
+  FundProjectLevel,
+} from '@/types/fund-a-project'
 import { RichTextEditor } from '@/components/core/tiptap/rich-text-editor'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -26,10 +30,6 @@ import {
   updateFundAProject,
 } from '@/sfn/fund-a-project'
 import { listTagsForRequestsFormQO } from '@/sfn/requests'
-import type {
-  FundAProjectCreateFormValues,
-  FundProjectLevel,
-} from '@/types/fund-a-project'
 import {
   FUND_PROJECT_LEVEL_KEYS,
   FUND_PROJECT_LEVEL_LABEL,
@@ -61,8 +61,7 @@ export function FundAProjectForm({
 
   const projectQuery = useQuery({
     queryKey: ['fund-a-project', fundAProjectId],
-    queryFn: () =>
-      getFundAProjectById({ data: { id: fundAProjectId! } }),
+    queryFn: () => getFundAProjectById({ data: { id: fundAProjectId! } }),
     enabled: mode === 'edit' && Boolean(fundAProjectId),
   })
 
@@ -174,7 +173,9 @@ export function FundAProjectForm({
   if (mode === 'edit') {
     if (!fundAProjectId) {
       return (
-        <p className="text-muted-foreground p-6 text-sm">Missing campaign id.</p>
+        <p className="text-muted-foreground p-6 text-sm">
+          Missing campaign id.
+        </p>
       )
     }
     if (projectQuery.isLoading) {
@@ -231,9 +232,7 @@ export function FundAProjectForm({
                   aria-invalid={isInvalid}
                   autoComplete="off"
                 />
-                {isInvalid && (
-                  <FieldError errors={field.state.meta.errors} />
-                )}
+                {isInvalid && <FieldError errors={field.state.meta.errors} />}
               </Field>
             )
           }}
@@ -256,9 +255,7 @@ export function FundAProjectForm({
                   aria-invalid={isInvalid}
                   autoComplete="off"
                 />
-                {isInvalid && (
-                  <FieldError errors={field.state.meta.errors} />
-                )}
+                {isInvalid && <FieldError errors={field.state.meta.errors} />}
               </Field>
             )
           }}
@@ -281,14 +278,10 @@ export function FundAProjectForm({
                     step={1}
                     value={field.state.value}
                     onBlur={field.handleBlur}
-                    onChange={(e) =>
-                      field.handleChange(Number(e.target.value))
-                    }
+                    onChange={(e) => field.handleChange(Number(e.target.value))}
                     aria-invalid={isInvalid}
                   />
-                  {isInvalid && (
-                    <FieldError errors={field.state.meta.errors} />
-                  )}
+                  {isInvalid && <FieldError errors={field.state.meta.errors} />}
                 </Field>
               )
             }}
@@ -301,7 +294,9 @@ export function FundAProjectForm({
                 field.state.meta.isTouched && !field.state.meta.isValid
               return (
                 <Field data-invalid={isInvalid}>
-                  <FieldLabel htmlFor={field.name}>Raised so far (USD)</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>
+                    Raised so far (USD)
+                  </FieldLabel>
                   <Input
                     id={field.name}
                     name={field.name}
@@ -310,14 +305,10 @@ export function FundAProjectForm({
                     step={1}
                     value={field.state.value}
                     onBlur={field.handleBlur}
-                    onChange={(e) =>
-                      field.handleChange(Number(e.target.value))
-                    }
+                    onChange={(e) => field.handleChange(Number(e.target.value))}
                     aria-invalid={isInvalid}
                   />
-                  {isInvalid && (
-                    <FieldError errors={field.state.meta.errors} />
-                  )}
+                  {isInvalid && <FieldError errors={field.state.meta.errors} />}
                 </Field>
               )
             }}
@@ -380,7 +371,9 @@ export function FundAProjectForm({
               name="coverImageAlt"
               children={(field) => (
                 <Field>
-                  <FieldLabel htmlFor={field.name}>Cover image alt text</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>
+                    Cover image alt text
+                  </FieldLabel>
                   <Input
                     id={field.name}
                     value={field.state.value}
@@ -413,9 +406,7 @@ export function FundAProjectForm({
                     className="w-full"
                   />
                 </div>
-                {isInvalid && (
-                  <FieldError errors={field.state.meta.errors} />
-                )}
+                {isInvalid && <FieldError errors={field.state.meta.errors} />}
               </Field>
             )
           }}

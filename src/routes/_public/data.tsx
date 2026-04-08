@@ -1,7 +1,7 @@
-import { SurveyCard } from '@/components/core/projects_research/survey_card'
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
 import type { JSONContent } from '@tiptap/core'
+import { SurveyCard } from '@/components/core/projects_research/survey_card'
 import { RichTextEditor } from '@/components/core/tiptap/rich-text-editor'
 
 export const Route = createFileRoute('/_public/data')({

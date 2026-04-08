@@ -6,6 +6,7 @@ import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { toast } from 'sonner'
 
+import type {RequestCreateFormValues} from '@/types/requests';
 import { REQUEST_TYPE } from '@/constants/enums'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -14,8 +15,8 @@ import {
   FieldError,
   FieldGroup,
   FieldLabel,
-  FieldSet,
   FieldLegend,
+  FieldSet,
 } from '@/components/ui/field'
 import { RichTextEditor } from '@/components/core/tiptap/rich-text-editor'
 import { Input } from '@/components/ui/input'
@@ -27,17 +28,20 @@ import {
   updateRequest,
 } from '@/sfn/requests'
 import {
-  requestCreateFormSchema,
-  type RequestCreateFormValues,
+  
+  requestCreateFormSchema
 } from '@/types/requests'
-import { asRichTextContent, emptyRichTextDocument } from '@/lib/tiptap-empty-doc'
+import {
+  asRichTextContent,
+  emptyRichTextDocument,
+} from '@/lib/tiptap-empty-doc'
 
 const authenticatedRouteApi = getRouteApi('/_authenticated')
 
 const defaultCreateValues: RequestCreateFormValues = {
   title: '',
   subtitle: '',
-  requestType: REQUEST_TYPE[0]!.value,
+  requestType: REQUEST_TYPE[0].value,
   content: emptyRichTextDocument,
   tagIds: [],
 }
@@ -108,7 +112,9 @@ export function RequestForm({ mode, requestId }: RequestFormProps) {
     onSuccess: async (row) => {
       await queryClient.invalidateQueries({ queryKey: ['requests'] })
       if (requestId) {
-        await queryClient.invalidateQueries({ queryKey: ['request', requestId] })
+        await queryClient.invalidateQueries({
+          queryKey: ['request', requestId],
+        })
       }
       if (row) {
         toast.success('Request updated')
@@ -144,7 +150,7 @@ export function RequestForm({ mode, requestId }: RequestFormProps) {
     form.reset({
       title: request.title,
       subtitle: request.subtitle ?? '',
-      requestType: request.requestType ?? REQUEST_TYPE[0]!.value,
+      requestType: request.requestType ?? REQUEST_TYPE[0].value,
       content: asRichTextContent(request.content),
       tagIds: request.tags.map((t) => t.id),
     })
@@ -152,7 +158,9 @@ export function RequestForm({ mode, requestId }: RequestFormProps) {
 
   if (mode === 'edit') {
     if (!requestId) {
-      return <p className="text-muted-foreground text-sm">Missing request id.</p>
+      return (
+        <p className="text-muted-foreground text-sm">Missing request id.</p>
+      )
     }
     if (requestQuery.isLoading) {
       return (
@@ -163,7 +171,9 @@ export function RequestForm({ mode, requestId }: RequestFormProps) {
       )
     }
     if (!request) {
-      return <p className="text-muted-foreground text-sm p-6">Request not found.</p>
+      return (
+        <p className="text-muted-foreground text-sm p-6">Request not found.</p>
+      )
     }
     if (!isOwner) {
       return (
@@ -206,9 +216,7 @@ export function RequestForm({ mode, requestId }: RequestFormProps) {
                   aria-invalid={isInvalid}
                   autoComplete="off"
                 />
-                {isInvalid && (
-                  <FieldError errors={field.state.meta.errors} />
-                )}
+                {isInvalid && <FieldError errors={field.state.meta.errors} />}
               </Field>
             )
           }}
@@ -231,9 +239,7 @@ export function RequestForm({ mode, requestId }: RequestFormProps) {
                   aria-invalid={isInvalid}
                   autoComplete="off"
                 />
-                {isInvalid && (
-                  <FieldError errors={field.state.meta.errors} />
-                )}
+                {isInvalid && <FieldError errors={field.state.meta.errors} />}
               </Field>
             )
           }}
@@ -262,9 +268,7 @@ export function RequestForm({ mode, requestId }: RequestFormProps) {
                     </option>
                   ))}
                 </select>
-                {isInvalid && (
-                  <FieldError errors={field.state.meta.errors} />
-                )}
+                {isInvalid && <FieldError errors={field.state.meta.errors} />}
               </Field>
             )
           }}
@@ -288,9 +292,7 @@ export function RequestForm({ mode, requestId }: RequestFormProps) {
                     className="w-full"
                   />
                 </div>
-                {isInvalid && (
-                  <FieldError errors={field.state.meta.errors} />
-                )}
+                {isInvalid && <FieldError errors={field.state.meta.errors} />}
               </Field>
             )
           }}

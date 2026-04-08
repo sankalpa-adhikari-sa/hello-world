@@ -3,10 +3,10 @@ import { queryOptions } from '@tanstack/react-query'
 import { and, asc, eq, ilike, or } from 'drizzle-orm'
 import { z } from 'zod'
 
+import { getCurrentUser } from './users'
 import { db } from '@/db'
 import { tags } from '@/db/schema/tags.schema'
 
-import { getCurrentUser } from './users'
 
 export const listTagsInputSchema = z.object({
   search: z.string().optional(),
@@ -20,9 +20,7 @@ export type ListTagsInput = z.infer<typeof listTagsInputSchema>
  */
 export const listTags = createServerFn({ method: 'GET' })
   .inputValidator((data: unknown) =>
-    listTagsInputSchema.parse(
-      data === undefined || data === null ? {} : data,
-    ),
+    listTagsInputSchema.parse(data === undefined || data === null ? {} : data),
   )
   .handler(async ({ data }) => {
     const { currentUser } = await getCurrentUser()
@@ -103,9 +101,7 @@ export const updateTag = createServerFn({ method: 'POST' })
     const [updated] = await db
       .update(tags)
       .set(patch)
-      .where(
-        and(eq(tags.id, data.id), eq(tags.createdById, currentUser.id)),
-      )
+      .where(and(eq(tags.id, data.id), eq(tags.createdById, currentUser.id)))
       .returning()
 
     return updated ?? null
@@ -122,9 +118,7 @@ export const deleteTag = createServerFn({ method: 'POST' })
 
     const [removed] = await db
       .delete(tags)
-      .where(
-        and(eq(tags.id, data.id), eq(tags.createdById, currentUser.id)),
-      )
+      .where(and(eq(tags.id, data.id), eq(tags.createdById, currentUser.id)))
       .returning({ id: tags.id })
 
     return { deleted: Boolean(removed), id: removed?.id ?? null }

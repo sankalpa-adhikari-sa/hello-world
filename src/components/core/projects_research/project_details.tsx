@@ -1,5 +1,5 @@
-import { Badge } from '@/components/ui/badge'
 import { FundMeMinimalCard } from '../fund-a-project/fund-a-project-card'
+import { Badge } from '@/components/ui/badge'
 import {
   Card,
   CardContent,

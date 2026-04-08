@@ -1,9 +1,16 @@
 import { z } from 'zod'
 import type { JSONContent } from '@tiptap/core'
 
-import { asRichTextContent, emptyRichTextDocument } from '@/lib/tiptap-empty-doc'
+import {
+  asRichTextContent,
+  emptyRichTextDocument,
+} from '@/lib/tiptap-empty-doc'
 
-export const fundProjectLevelSchema = z.enum(['highschool', 'undergrad', 'grad'])
+export const fundProjectLevelSchema = z.enum([
+  'highschool',
+  'undergrad',
+  'grad',
+])
 export type FundProjectLevel = z.infer<typeof fundProjectLevelSchema>
 
 export const FUND_PROJECT_LEVEL_LABEL: Record<FundProjectLevel, string> = {

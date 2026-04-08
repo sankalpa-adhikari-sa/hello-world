@@ -1,5 +1,12 @@
 'use client'
 
+import { useQuery } from '@tanstack/react-query'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useServerFn } from '@tanstack/react-start'
+import { FilterIcon, SearchIcon } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { z } from 'zod'
+import type { RequestTypeValue } from '@/types/requests'
 import ResearchBanner from '@/components/core/projects_research/research_banner'
 import { RequestCard } from '@/components/core/requests/requests-card'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -14,7 +21,11 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import {
   Select,
   SelectContent,
@@ -32,25 +43,21 @@ import {
   requestsPublicListSearchSchema,
 } from '@/sfn/requests'
 import { getOptionalCurrentUser } from '@/sfn/users'
-import type { RequestTypeValue } from '@/types/requests'
-import { useQuery } from '@tanstack/react-query'
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useServerFn } from '@tanstack/react-start'
-import { FilterIcon, SearchIcon } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
-import { z } from 'zod'
 
-const REQUEST_TYPE_VALUES = new Set(
-  REQUEST_TYPE.map((t) => t.value as string),
-)
+const REQUEST_TYPE_VALUES = new Set(REQUEST_TYPE.map((t) => t.value))
 
 function parseCommaList(raw: string | undefined): Array<string> {
   if (!raw?.trim()) return []
-  return raw.split(',').map((s) => s.trim()).filter(Boolean)
+  return raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
 }
 
 function filterValidTagIds(raw: string | undefined): Array<string> {
-  return parseCommaList(raw).filter((id) => z.string().uuid().safeParse(id).success)
+  return parseCommaList(raw).filter(
+    (id) => z.string().uuid().safeParse(id).success,
+  )
 }
 
 function filterValidRequestTypes(raw: string | undefined): Array<string> {
@@ -96,14 +103,7 @@ function RouteComponent() {
         requestTypes: requestTypes.length ? requestTypes : undefined,
       },
     }),
-    [
-      search.page,
-      search.pageSize,
-      search.q,
-      search.sort,
-      tagIds,
-      requestTypes,
-    ],
+    [search.page, search.pageSize, search.q, search.sort, tagIds, requestTypes],
   )
 
   const { data: authPayload } = useQuery({
@@ -113,12 +113,7 @@ function RouteComponent() {
 
   const sessionUserId = authPayload?.currentUser?.id ?? null
 
-  const {
-    data,
-    isPending,
-    isError,
-    isFetching,
-  } = useQuery({
+  const { data, isPending, isError, isFetching } = useQuery({
     queryKey: ['requests', 'list', listQueryInput],
     queryFn: () => getRequestsSfn({ data: listQueryInput }),
   })
@@ -203,7 +198,7 @@ function RouteComponent() {
     const windowSize = 5
     const half = Math.floor(windowSize / 2)
     let start = Math.max(1, page - half)
-    let end = Math.min(totalPages, start + windowSize - 1)
+    const end = Math.min(totalPages, start + windowSize - 1)
     start = Math.max(1, end - windowSize + 1)
     const nums: Array<number> = []
     for (let i = start; i <= end; i += 1) nums.push(i)
@@ -211,9 +206,7 @@ function RouteComponent() {
   }, [page, totalPages])
 
   const hasActiveFilters = Boolean(
-    search.q?.trim() ||
-      tagIds.length ||
-      requestTypes.length,
+    search.q?.trim() || tagIds.length || requestTypes.length,
   )
 
   return (
@@ -372,67 +365,69 @@ function RouteComponent() {
                     </>
                   ) : null}
                 </PopoverTrigger>
-            <PopoverContent className="w-80" align="end">
-              <div className="space-y-4">
-                <div>
-                  <p className="mb-2 text-xs font-medium">Request type</p>
-                  <div className="max-h-40 space-y-2 overflow-y-auto pr-1">
-                    {REQUEST_TYPE.map((t) => (
-                      <label
-                        key={t.value}
-                        className="flex cursor-pointer items-center gap-2 text-sm"
-                      >
-                        <Checkbox
-                          checked={requestTypes.includes(t.value)}
-                          onCheckedChange={(c) =>
-                            toggleRequestType(t.value, c === true)
-                          }
-                        />
-                        <span>{t.label}</span>
-                      </label>
-                    ))}
+                <PopoverContent className="w-80" align="end">
+                  <div className="space-y-4">
+                    <div>
+                      <p className="mb-2 text-xs font-medium">Request type</p>
+                      <div className="max-h-40 space-y-2 overflow-y-auto pr-1">
+                        {REQUEST_TYPE.map((t) => (
+                          <label
+                            key={t.value}
+                            className="flex cursor-pointer items-center gap-2 text-sm"
+                          >
+                            <Checkbox
+                              checked={requestTypes.includes(t.value)}
+                              onCheckedChange={(c) =>
+                                toggleRequestType(t.value, c === true)
+                              }
+                            />
+                            <span>{t.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="mb-2 text-xs font-medium">Tags</p>
+                      {tagsQuery.isLoading ? (
+                        <div className="text-muted-foreground flex items-center gap-2 text-xs">
+                          <Spinner />
+                          Loading tags…
+                        </div>
+                      ) : tagsQuery.data?.length ? (
+                        <div className="max-h-48 space-y-2 overflow-y-auto pr-1">
+                          {tagsQuery.data.map((t) => (
+                            <label
+                              key={t.id}
+                              className="flex cursor-pointer items-center gap-2 text-sm"
+                            >
+                              <Checkbox
+                                checked={tagIds.includes(t.id)}
+                                onCheckedChange={(c) =>
+                                  toggleTagId(t.id, c === true)
+                                }
+                              />
+                              <span>{t.name}</span>
+                            </label>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground text-xs">
+                          No tags yet.
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="w-full"
+                      onClick={clearFilters}
+                      disabled={!hasActiveFilters && !queryDraft.trim()}
+                    >
+                      Clear search & filters
+                    </Button>
                   </div>
-                </div>
-                <div>
-                  <p className="mb-2 text-xs font-medium">Tags</p>
-                  {tagsQuery.isLoading ? (
-                    <div className="text-muted-foreground flex items-center gap-2 text-xs">
-                      <Spinner />
-                      Loading tags…
-                    </div>
-                  ) : tagsQuery.data?.length ? (
-                    <div className="max-h-48 space-y-2 overflow-y-auto pr-1">
-                      {tagsQuery.data.map((t) => (
-                        <label
-                          key={t.id}
-                          className="flex cursor-pointer items-center gap-2 text-sm"
-                        >
-                          <Checkbox
-                            checked={tagIds.includes(t.id)}
-                            onCheckedChange={(c) =>
-                              toggleTagId(t.id, c === true)
-                            }
-                          />
-                          <span>{t.name}</span>
-                        </label>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground text-xs">No tags yet.</p>
-                  )}
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="w-full"
-                  onClick={clearFilters}
-                  disabled={!hasActiveFilters && !queryDraft.trim()}
-                >
-                  Clear search & filters
-                </Button>
-              </div>
-            </PopoverContent>
+                </PopoverContent>
               </Popover>
             </div>
           </div>
@@ -462,7 +457,7 @@ function RouteComponent() {
 
         <div className="flex flex-col gap-4">
           {requests.map((r) => {
-            const type = (r.requestType ?? 'collaboration') as RequestTypeValue
+            const type = (r.requestType ?? 'collaboration')
             const isOwner = Boolean(
               sessionUserId && r.createdById === sessionUserId,
             )

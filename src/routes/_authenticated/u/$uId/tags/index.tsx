@@ -1,5 +1,4 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { getRouteApi } from '@tanstack/react-router'
+import { createFileRoute, getRouteApi, useNavigate  } from '@tanstack/react-router'
 import { useServerFn } from '@tanstack/react-start'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useDeferredValue, useEffect, useState } from 'react'
@@ -97,11 +96,7 @@ function RouteComponent() {
     setFormOpen(true)
   }
 
-  const openEdit = (row: {
-    id: string
-    name: string
-    isPublic: boolean
-  }) => {
+  const openEdit = (row: { id: string; name: string; isPublic: boolean }) => {
     setFormMode('edit')
     setEditingTag(row)
     setFormOpen(true)
@@ -174,11 +169,17 @@ function RouteComponent() {
                     <td className="px-3 py-2 font-medium">{row.name}</td>
                     <td className="px-3 py-2">
                       {row.isPublic ? (
-                        <Badge variant="secondary" className="rounded-none text-[10px] uppercase">
+                        <Badge
+                          variant="secondary"
+                          className="rounded-none text-[10px] uppercase"
+                        >
                           Public
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="rounded-none text-[10px] uppercase">
+                        <Badge
+                          variant="outline"
+                          className="rounded-none text-[10px] uppercase"
+                        >
                           Private
                         </Badge>
                       )}

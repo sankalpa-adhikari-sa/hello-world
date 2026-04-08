@@ -128,7 +128,9 @@ function LinkPopover() {
     if (trimmed === '') {
       editor.chain().focus().extendMarkRange('link').unsetLink().run()
     } else {
-      const href = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+      const href = /^https?:\/\//i.test(trimmed)
+        ? trimmed
+        : `https://${trimmed}`
       editor.chain().focus().extendMarkRange('link').setLink({ href }).run()
     }
     setOpen(false)
@@ -313,28 +315,27 @@ export function RichTextEditorToolbar({ className }: { className?: string }) {
         className,
       )}
     >
-
-<Button
-  type="button"
-  variant="outline"
-  size="icon-sm"
-  aria-label="Undo"
-  disabled={!s.canUndo}
-  onClick={() => editor.chain().focus().undo().run()}
->
-  <Undo2 className="size-3.5" />
-</Button>
-<Button
-  type="button"
-  variant="outline"
-  size="icon-sm"
-  aria-label="Redo"
-  disabled={!s.canRedo}
-  onClick={() => editor.chain().focus().redo().run()}
->
-  <Redo2 className="size-3.5" />
-</Button>
-<Separator orientation="vertical" className="mx-0.5 h-6" />
+      <Button
+        type="button"
+        variant="outline"
+        size="icon-sm"
+        aria-label="Undo"
+        disabled={!s.canUndo}
+        onClick={() => editor.chain().focus().undo().run()}
+      >
+        <Undo2 className="size-3.5" />
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="icon-sm"
+        aria-label="Redo"
+        disabled={!s.canRedo}
+        onClick={() => editor.chain().focus().redo().run()}
+      >
+        <Redo2 className="size-3.5" />
+      </Button>
+      <Separator orientation="vertical" className="mx-0.5 h-6" />
 
       <DropdownMenu>
         <DropdownMenuTrigger
@@ -357,9 +358,7 @@ export function RichTextEditorToolbar({ className }: { className?: string }) {
         <DropdownMenuContent align="start" className="min-w-[10rem]">
           <DropdownMenuItem
             className="cursor-pointer gap-2"
-            onClick={() =>
-              editor.chain().focus().setParagraph().run()
-            }
+            onClick={() => editor.chain().focus().setParagraph().run()}
           >
             <Pilcrow className="size-3.5" />
             Paragraph
@@ -444,9 +443,7 @@ export function RichTextEditorToolbar({ className }: { className?: string }) {
       <Toggle
         size="sm"
         pressed={s.isSubscript}
-        onPressedChange={() =>
-          editor.chain().focus().toggleSubscript().run()
-        }
+        onPressedChange={() => editor.chain().focus().toggleSubscript().run()}
         aria-label="Subscript"
       >
         <SubscriptIcon className="size-3.5" />
@@ -454,9 +451,7 @@ export function RichTextEditorToolbar({ className }: { className?: string }) {
       <Toggle
         size="sm"
         pressed={s.isSuperscript}
-        onPressedChange={() =>
-          editor.chain().focus().toggleSuperscript().run()
-        }
+        onPressedChange={() => editor.chain().focus().toggleSuperscript().run()}
         aria-label="Superscript"
       >
         <SuperscriptIcon className="size-3.5" />
@@ -500,9 +495,7 @@ export function RichTextEditorToolbar({ className }: { className?: string }) {
       <Toggle
         size="sm"
         pressed={s.isBulletList}
-        onPressedChange={() =>
-          editor.chain().focus().toggleBulletList().run()
-        }
+        onPressedChange={() => editor.chain().focus().toggleBulletList().run()}
         aria-label="Bullet list"
       >
         <List className="size-3.5" />
@@ -510,9 +503,7 @@ export function RichTextEditorToolbar({ className }: { className?: string }) {
       <Toggle
         size="sm"
         pressed={s.isOrderedList}
-        onPressedChange={() =>
-          editor.chain().focus().toggleOrderedList().run()
-        }
+        onPressedChange={() => editor.chain().focus().toggleOrderedList().run()}
         aria-label="Numbered list"
       >
         <ListOrdered className="size-3.5" />
@@ -520,9 +511,7 @@ export function RichTextEditorToolbar({ className }: { className?: string }) {
       <Toggle
         size="sm"
         pressed={s.isBlockquote}
-        onPressedChange={() =>
-          editor.chain().focus().toggleBlockquote().run()
-        }
+        onPressedChange={() => editor.chain().focus().toggleBlockquote().run()}
         aria-label="Quote"
       >
         <Quote className="size-3.5" />
@@ -530,9 +519,7 @@ export function RichTextEditorToolbar({ className }: { className?: string }) {
       <Toggle
         size="sm"
         pressed={s.isCodeBlock}
-        onPressedChange={() =>
-          editor.chain().focus().toggleCodeBlock().run()
-        }
+        onPressedChange={() => editor.chain().focus().toggleCodeBlock().run()}
         aria-label="Code block"
       >
         <SquareCode className="size-3.5" />
@@ -552,8 +539,6 @@ export function RichTextEditorToolbar({ className }: { className?: string }) {
 
       <LinkPopover />
       <ImagePopover />
-
-     
     </div>
   )
 }

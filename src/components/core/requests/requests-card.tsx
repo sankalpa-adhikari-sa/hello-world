@@ -1,3 +1,5 @@
+import { ZapIcon } from 'lucide-react'
+import type { RequestCardProps } from '@/types/requests'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -8,8 +10,6 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { REQUEST_TYPE } from '@/constants/enums'
-import type { RequestCardProps } from '@/types/requests'
-import { ZapIcon } from 'lucide-react'
 
 export type { RequestCardProps } from '@/types/requests'
 

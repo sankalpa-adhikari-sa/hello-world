@@ -1,10 +1,11 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import type {
+  FundmeCardProps} from '@/components/core/fund-a-project/fund-a-project-card';
 import { Button } from '@/components/ui/button'
 import { authClient } from '@/lib/auth/auth-client'
 import { authMiddleware } from '@/middleware/auth'
 import {
-  FundmeCard,
-  FundmeCardProps,
+  FundmeCard
 } from '@/components/core/fund-a-project/fund-a-project-card'
 
 export const Route = createFileRoute('/_authenticated/u/dashboard')({
@@ -25,7 +26,7 @@ function RouteComponent() {
       },
     })
   }
-  const PROJECTS_DATA: (FundmeCardProps & { id: number })[] = [
+  const PROJECTS_DATA: Array<FundmeCardProps & { id: number }> = [
     {
       id: 1,
       badge: 'Undergrad',

@@ -1,5 +1,9 @@
+import { createFileRoute } from '@tanstack/react-router'
+import { useServerFn } from '@tanstack/react-start'
+import { useQuery } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 
+import type { PublicEvent } from '@/sfn/events'
 import EventsBanner from '@/components/core/events/events_banner'
 import {
   EventFeaturedCard1,
@@ -9,11 +13,7 @@ import {
   OngoingEvents,
 } from '@/components/core/events/events_card'
 import { Button } from '@/components/ui/button'
-import { createFileRoute } from '@tanstack/react-router'
-import { useServerFn } from '@tanstack/react-start'
-import { useQuery } from '@tanstack/react-query'
 
-import type { PublicEvent } from '@/sfn/events'
 import { getPublicEvents } from '@/sfn/events'
 
 export const Route = createFileRoute('/_public/events')({
@@ -43,12 +43,7 @@ type CardVariant = 'gridLarge' | 'compact' | 'lecture' | 'hero'
 
 function pickVariant(e: PublicEvent, index: number): CardVariant {
   const v = str(eventContent(e), 'cardVariant')
-  if (
-    v === 'compact' ||
-    v === 'lecture' ||
-    v === 'hero' ||
-    v === 'gridLarge'
-  ) {
+  if (v === 'compact' || v === 'lecture' || v === 'hero' || v === 'gridLarge') {
     return v
   }
   return (['gridLarge', 'compact', 'lecture', 'hero'] as const)[index % 4]
@@ -239,9 +234,7 @@ function RouteComponent() {
             return wrap(
               <EventFeaturedCard1
                 imageUrl={imageUrl}
-                seriesLabel={
-                  str(c, 'seriesLabel') || e.eventType.toUpperCase()
-                }
+                seriesLabel={str(c, 'seriesLabel') || e.eventType.toUpperCase()}
                 codeBadge={
                   str(c, 'codeBadge') ||
                   e.organization.name.slice(0, 12).toUpperCase()

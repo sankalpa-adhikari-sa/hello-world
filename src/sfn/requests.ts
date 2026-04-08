@@ -13,12 +13,12 @@ import {
 } from 'drizzle-orm'
 import { z } from 'zod'
 
+import { getCurrentUser } from './users'
 import { REQUEST_TYPE } from '@/constants/enums'
 import { db } from '@/db'
 import { request, requestTags } from '@/db/schema/request.schema'
 import { tags } from '@/db/schema/tags.schema'
 
-import { getCurrentUser } from './users'
 
 export const getRequestByIdInputSchema = z.object({
   id: z.string().uuid(),
@@ -42,15 +42,15 @@ export const getRequestByIdQO = (id: string) =>
 /**
  * Tag options for request forms (id + display name).
  */
-export const listTagsForRequestsForm = createServerFn({ method: 'GET' }).handler(
-  async () => {
-    const rows = await db.query.tags.findMany({
-      orderBy: asc(tags.name),
-      limit: 500,
-    })
-    return rows.map((r) => ({ id: r.id, name: r.name }))
-  },
-)
+export const listTagsForRequestsForm = createServerFn({
+  method: 'GET',
+}).handler(async () => {
+  const rows = await db.query.tags.findMany({
+    orderBy: asc(tags.name),
+    limit: 500,
+  })
+  return rows.map((r) => ({ id: r.id, name: r.name }))
+})
 
 export const listTagsForRequestsFormQO = () =>
   queryOptions({
@@ -59,7 +59,7 @@ export const listTagsForRequestsFormQO = () =>
   })
 
 const requestTypeEnum = z.enum(
-  REQUEST_TYPE.map((g) => g.value) as [string, ...string[]],
+  REQUEST_TYPE.map((g) => g.value) as [string, ...Array<string>],
 )
 
 type RequestRow = typeof request.$inferSelect
@@ -86,7 +86,9 @@ function toRequestWithTags(
   }
 }
 
-async function loadRequestWithTags(id: string): Promise<RequestWithTags | null> {
+async function loadRequestWithTags(
+  id: string,
+): Promise<RequestWithTags | null> {
   const row = await db.query.request.findFirst({
     where: eq(request.id, id),
     with: {
@@ -96,7 +98,7 @@ async function loadRequestWithTags(id: string): Promise<RequestWithTags | null> 
   return row ? toRequestWithTags(row) : null
 }
 
-async function assertAllTagIdsExist(tagIds: string[]) {
+async function assertAllTagIdsExist(tagIds: Array<string>) {
   if (tagIds.length === 0) return
   const unique = [...new Set(tagIds)]
   const rows = await db
@@ -209,9 +211,7 @@ export const getRequests = createServerFn({ method: 'GET' })
     const rows = await db.query.request.findMany({
       where: whereClause,
       orderBy:
-        sortBy === 'asc'
-          ? asc(request.createdAt)
-          : desc(request.createdAt),
+        sortBy === 'asc' ? asc(request.createdAt) : desc(request.createdAt),
       limit,
       offset,
       with: {
@@ -252,9 +252,7 @@ export const createRequest = createServerFn({ method: 'POST' })
   .inputValidator((data: unknown) => createRequestSchema.parse(data))
   .handler(async ({ data }) => {
     const { currentUser } = await getCurrentUser()
-    const uniqueTagIds = data.tagIds?.length
-      ? [...new Set(data.tagIds)]
-      : []
+    const uniqueTagIds = data.tagIds?.length ? [...new Set(data.tagIds)] : []
 
     return await db.transaction(async (tx) => {
       const [row] = await tx
@@ -286,10 +284,12 @@ export const createRequest = createServerFn({ method: 'POST' })
         where: eq(request.id, row.id),
         with: { requestTags: { with: { tag: true } } },
       })
-      return full ? toRequestWithTags(full) : toRequestWithTags({
-        ...row,
-        requestTags: [],
-      })
+      return full
+        ? toRequestWithTags(full)
+        : toRequestWithTags({
+            ...row,
+            requestTags: [],
+          })
     })
   })
 
@@ -348,15 +348,10 @@ export const updateRequest = createServerFn({ method: 'POST' })
 
     await db.transaction(async (tx) => {
       if (hasPatch) {
-        await tx
-          .update(request)
-          .set(patch)
-          .where(eq(request.id, data.id))
+        await tx.update(request).set(patch).where(eq(request.id, data.id))
       }
       if (hasTagUpdate) {
-        await tx
-          .delete(requestTags)
-          .where(eq(requestTags.requestId, data.id))
+        await tx.delete(requestTags).where(eq(requestTags.requestId, data.id))
         if (uniqueTagIds.length > 0) {
           await assertAllTagIdsExist(uniqueTagIds)
           await tx.insert(requestTags).values(
@@ -387,10 +382,7 @@ export const deleteRequest = createServerFn({ method: 'POST' })
     const [removed] = await db
       .delete(request)
       .where(
-        and(
-          eq(request.id, data.id),
-          eq(request.createdById, currentUser.id),
-        ),
+        and(eq(request.id, data.id), eq(request.createdById, currentUser.id)),
       )
       .returning({ id: request.id })
 

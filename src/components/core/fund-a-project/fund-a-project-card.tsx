@@ -1,4 +1,7 @@
-import type { FundMeMinimalCardProps, FundmeCardProps } from '@/types/fund-a-project'
+import type {
+  FundMeMinimalCardProps,
+  FundmeCardProps,
+} from '@/types/fund-a-project'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -6,7 +9,10 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Meter, MeterLabel, MeterValue } from '@/components/ui/meter'
 
-export type { FundmeCardProps, FundMeMinimalCardProps } from '@/types/fund-a-project'
+export type {
+  FundmeCardProps,
+  FundMeMinimalCardProps,
+} from '@/types/fund-a-project'
 
 export function FundmeCard({
   badge,
@@ -68,8 +74,7 @@ export function FundmeCard({
         <h3 className="font-sans font-bold text-lg leading-tight uppercase mb-6 flex-grow">
           {title}
         </h3>
-      
-       
+
         <div className="relative mb-4">
           <Progress
             value={progress}

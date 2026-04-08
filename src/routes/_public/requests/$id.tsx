@@ -1,18 +1,13 @@
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useServerFn } from '@tanstack/react-start'
 import { useQuery } from '@tanstack/react-query'
+import type { RequestTypeValue } from '@/types/requests'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 import { REQUEST_TYPE } from '@/constants/enums'
 import { getRequestDetailBody } from '@/lib/request-content-preview'
-import type { RequestTypeValue } from '@/types/requests'
 import { getRequestById } from '@/sfn/requests'
 import { getOptionalCurrentUser } from '@/sfn/users'
 
@@ -36,7 +31,11 @@ function RouteComponent() {
   })
   const sessionUserId = authPayload?.currentUser?.id ?? null
 
-  const { data: request, isPending, isError } = useQuery({
+  const {
+    data: request,
+    isPending,
+    isError,
+  } = useQuery({
     queryKey: ['request', id],
     queryFn: () => getRequestSfn({ data: { id } }),
   })
@@ -65,7 +64,7 @@ function RouteComponent() {
     )
   }
 
-  const type = (request.requestType ?? 'collaboration') as RequestTypeValue
+  const type = (request.requestType ?? 'collaboration')
   const isOwner = Boolean(
     sessionUserId && request.createdById === sessionUserId,
   )

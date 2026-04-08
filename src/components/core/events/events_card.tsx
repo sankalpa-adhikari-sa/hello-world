@@ -1,3 +1,11 @@
+import { CalendarIcon } from 'lucide-react'
+import type {
+  EventFeaturedCompactProps,
+  EventFeaturedGridLargeProps,
+  EventFeaturedHeroProps,
+  EventFeaturedLectureProps,
+  OngoingEventCardProps,
+} from '@/types/events'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -8,14 +16,6 @@ import {
   ItemMedia,
   ItemTitle,
 } from '@/components/ui/item'
-import type {
-  EventFeaturedCompactProps,
-  EventFeaturedGridLargeProps,
-  EventFeaturedHeroProps,
-  EventFeaturedLectureProps,
-  OngoingEventCardProps,
-} from '@/types/events'
-import { CalendarIcon } from 'lucide-react'
 
 export function OngoingEvents({
   dateLabel,
@@ -29,7 +29,9 @@ export function OngoingEvents({
     <Item variant={'outline'} className="border border-border shadow-sm">
       <ItemMedia className="items-center">
         <CalendarIcon className="size-5 text-primary stroke-2.5" />
-        <span className="text-xl font-bold italic text-primary">{dateLabel}</span>
+        <span className="text-xl font-bold italic text-primary">
+          {dateLabel}
+        </span>
       </ItemMedia>
       <ItemContent>
         <ItemTitle className="text-lg font-bold uppercase">{title}</ItemTitle>
@@ -140,7 +142,11 @@ export function EventFeaturedCard1({
         </div>
 
         <ItemActions>
-          <Button className="w-full font-medium" type="button" onClick={onRsvpClick}>
+          <Button
+            className="w-full font-medium"
+            type="button"
+            onClick={onRsvpClick}
+          >
             {rsvpLabel}
           </Button>
         </ItemActions>
@@ -244,7 +250,11 @@ export function EventFeaturedCard3({
       </ItemContent>
 
       <ItemActions className="pt-2">
-        <Button className="w-full font-medium" type="button" onClick={onCtaClick}>
+        <Button
+          className="w-full font-medium"
+          type="button"
+          onClick={onCtaClick}
+        >
           {ctaLabel}
         </Button>
       </ItemActions>
@@ -282,11 +292,15 @@ export function EventFeaturedCard4({
           <ItemTitle className="w-full min-w-0 font-serif text-2xl font-normal leading-tight tracking-tight text-foreground normal-case line-clamp-none sm:text-3xl">
             {title}
           </ItemTitle>
-          <p className="text-xs font-medium uppercase tracking-[0.12em] text-primary">{tagline}</p>
+          <p className="text-xs font-medium uppercase tracking-[0.12em] text-primary">
+            {tagline}
+          </p>
         </div>
 
         <div className="flex flex-col gap-4 sm:items-end">
-          <p className="text-xs tabular-nums tracking-wide text-muted-foreground">{dateRange}</p>
+          <p className="text-xs tabular-nums tracking-wide text-muted-foreground">
+            {dateRange}
+          </p>
           <ItemActions>
             <Button
               variant="outline"

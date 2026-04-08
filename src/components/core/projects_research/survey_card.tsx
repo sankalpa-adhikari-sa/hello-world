@@ -1,3 +1,5 @@
+import { CoinsIcon, UsersIcon } from 'lucide-react'
+import type { SurveyCardProps } from '@/types/survey'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -7,8 +9,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import type { SurveyCardProps } from '@/types/survey'
-import { CoinsIcon, UsersIcon } from 'lucide-react'
 
 export type { SurveyCardProps } from '@/types/survey'
 

@@ -1,5 +1,5 @@
-import { Button } from '@/components/ui/button'
 import { PlusCircleIcon } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 export interface ResearchBannerProps {
   /** Opens create flow (signed-in) or login (guest). */
