@@ -457,7 +457,7 @@ function RouteComponent() {
 
         <div className="flex flex-col gap-4">
           {requests.map((r) => {
-            const type = (r.requestType ?? 'collaboration')
+            const type = r.requestType ?? 'collaboration'
             const isOwner = Boolean(
               sessionUserId && r.createdById === sessionUserId,
             )

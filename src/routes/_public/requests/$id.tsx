@@ -64,7 +64,7 @@ function RouteComponent() {
     )
   }
 
-  const type = (request.requestType ?? 'collaboration')
+  const type = request.requestType ?? 'collaboration'
   const isOwner = Boolean(
     sessionUserId && request.createdById === sessionUserId,
   )

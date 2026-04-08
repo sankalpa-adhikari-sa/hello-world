@@ -19,7 +19,6 @@ import { db } from '@/db'
 import { request, requestTags } from '@/db/schema/request.schema'
 import { tags } from '@/db/schema/tags.schema'
 
-
 export const getRequestByIdInputSchema = z.object({
   id: z.string().uuid(),
 })

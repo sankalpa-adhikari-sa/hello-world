@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { toast } from 'sonner'
 
-import type {TagFormValues} from '@/types/tags';
+import type { TagFormValues } from '@/types/tags'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -26,7 +26,7 @@ import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import { Switch } from '@/components/ui/switch'
 import { createTag, updateTag } from '@/sfn/tags'
-import {  tagFormSchema } from '@/types/tags'
+import { tagFormSchema } from '@/types/tags'
 
 const defaultValues: TagFormValues = {
   name: '',

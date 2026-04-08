@@ -5,12 +5,8 @@ import {
   TextSelection,
 } from '@tiptap/pm/state'
 import { CellSelection, cellAround } from '@tiptap/pm/tables'
-import {
-  
-  
-  findParentNodeClosestToPos
-} from '@tiptap/react'
-import type {Editor, NodeWithPos} from '@tiptap/react';
+import { findParentNodeClosestToPos } from '@tiptap/react'
+import type { Editor, NodeWithPos } from '@tiptap/react'
 import type { Transaction } from '@tiptap/pm/state'
 import type { Node as PMNode } from '@tiptap/pm/model'
 

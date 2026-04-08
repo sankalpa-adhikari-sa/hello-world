@@ -1,7 +1,7 @@
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
-import { lastLoginMethod, organization  } from 'better-auth/plugins'
+import { lastLoginMethod, organization } from 'better-auth/plugins'
 import { ac, admin, member, owner } from '@/lib/auth/permissions'
 import { db } from '@/db'
 import { organizationProfile } from '@/db/schema/organization.schema'

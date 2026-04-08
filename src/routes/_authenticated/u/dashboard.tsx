@@ -1,12 +1,9 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import type {
-  FundmeCardProps} from '@/components/core/fund-a-project/fund-a-project-card';
+import type { FundmeCardProps } from '@/components/core/fund-a-project/fund-a-project-card'
 import { Button } from '@/components/ui/button'
 import { authClient } from '@/lib/auth/auth-client'
 import { authMiddleware } from '@/middleware/auth'
-import {
-  FundmeCard
-} from '@/components/core/fund-a-project/fund-a-project-card'
+import { FundmeCard } from '@/components/core/fund-a-project/fund-a-project-card'
 
 export const Route = createFileRoute('/_authenticated/u/dashboard')({
   component: RouteComponent,

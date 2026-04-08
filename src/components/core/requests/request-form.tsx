@@ -6,7 +6,7 @@ import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { toast } from 'sonner'
 
-import type {RequestCreateFormValues} from '@/types/requests';
+import type { RequestCreateFormValues } from '@/types/requests'
 import { REQUEST_TYPE } from '@/constants/enums'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -27,10 +27,7 @@ import {
   listTagsForRequestsFormQO,
   updateRequest,
 } from '@/sfn/requests'
-import {
-  
-  requestCreateFormSchema
-} from '@/types/requests'
+import { requestCreateFormSchema } from '@/types/requests'
 import {
   asRichTextContent,
   emptyRichTextDocument,
