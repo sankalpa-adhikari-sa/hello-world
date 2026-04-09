@@ -134,14 +134,6 @@ function RouteComponent() {
           <p className="max-w-prose text-sm leading-relaxed font-medium whitespace-pre-wrap">
             {getRequestDetailBody(request)}
           </p>
-          <details className="text-xs">
-            <summary className="cursor-pointer font-bold uppercase tracking-wide text-muted-foreground">
-              Raw content (JSON)
-            </summary>
-            <pre className="bg-muted mt-2 max-h-64 overflow-auto rounded-md border p-3 font-mono">
-              {JSON.stringify(request.content ?? {}, null, 2)}
-            </pre>
-          </details>
         </CardContent>
       </Card>
     </article>

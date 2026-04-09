@@ -7,7 +7,6 @@ import { getCurrentUser } from './users'
 import { db } from '@/db'
 import { tags } from '@/db/schema/tags.schema'
 
-
 export const listTagsInputSchema = z.object({
   search: z.string().optional(),
   limit: z.number().min(1).max(200).default(100),
@@ -15,9 +14,6 @@ export const listTagsInputSchema = z.object({
 
 export type ListTagsInput = z.infer<typeof listTagsInputSchema>
 
-/**
- * Tags you created or that are marked public. Authenticated.
- */
 export const listTags = createServerFn({ method: 'GET' })
   .inputValidator((data: unknown) =>
     listTagsInputSchema.parse(data === undefined || data === null ? {} : data),
@@ -77,7 +73,7 @@ export const createTag = createServerFn({ method: 'POST' })
   })
 
 export const updateTagSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   name: z.string().min(1).max(120).optional(),
   isPublic: z.boolean().optional(),
 })
@@ -107,12 +103,14 @@ export const updateTag = createServerFn({ method: 'POST' })
     return updated ?? null
   })
 
-export const deleteTagSchema = z.object({
-  id: z.string().uuid(),
-})
-
 export const deleteTag = createServerFn({ method: 'POST' })
-  .inputValidator((data: unknown) => deleteTagSchema.parse(data))
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        id: z.uuid(),
+      })
+      .parse(data),
+  )
   .handler(async ({ data }) => {
     const { currentUser } = await getCurrentUser()
 

@@ -52,7 +52,7 @@ async function loadPublicEventById(id: string): Promise<PublicEvent | null> {
 }
 
 export const getPublicEventByIdInputSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
 })
 
 /**
@@ -78,7 +78,7 @@ export const getPublicEventsInputSchema = z.object({
       sortBy: z.enum(['asc', 'desc']).optional(),
       /** Match any of these `events.event_type` values (exact, case-sensitive as stored). */
       eventTypes: z.array(z.string().min(1)).max(20).optional(),
-      tagIds: z.array(z.string().uuid()).max(50).optional(),
+      tagIds: z.array(z.uuid()).max(50).optional(),
       featuredOnly: z.boolean().optional(),
     })
     .optional(),

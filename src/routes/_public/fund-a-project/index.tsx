@@ -46,6 +46,18 @@ import {
   FUND_PROJECT_LEVEL_LABEL,
 } from '@/types/fund-a-project'
 
+function cardAffiliationLine(createdBy: {
+  studentMajor: string | null
+}): string {
+  if (!createdBy.studentMajor) return ''
+  return createdBy.studentMajor.trim()
+}
+
+function fundedPercent(funded: number, target: number): number {
+  if (target <= 0) return 0
+  return Math.min(100, Math.round((funded / target) * 100))
+}
+
 const LEVEL_VALUE_SET = new Set<string>(FUND_PROJECT_LEVEL_KEYS)
 
 function parseCommaList(raw: string | undefined): Array<string> {
@@ -57,9 +69,7 @@ function parseCommaList(raw: string | undefined): Array<string> {
 }
 
 function filterValidTagIds(raw: string | undefined): Array<string> {
-  return parseCommaList(raw).filter(
-    (id) => z.string().uuid().safeParse(id).success,
-  )
+  return parseCommaList(raw).filter((id) => z.uuid().safeParse(id).success)
 }
 
 function filterValidLevels(raw: string | undefined): Array<string> {
@@ -103,10 +113,7 @@ function RouteComponent() {
         sort: search.sort,
         tagIds: tagIds.length ? tagIds : undefined,
         featuredOnly: search.featured === true,
-        projectLevels:
-          levelValues.length > 0
-            ? (levelValues as Array<(typeof FUND_PROJECT_LEVEL_KEYS)[number]>)
-            : undefined,
+        projectLevels: levelValues.length > 0 ? levelValues : undefined,
       },
     }),
     [
@@ -499,16 +506,56 @@ function RouteComponent() {
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {projects.map((p) => {
-            const { id, ...card } = p.card
+            const pct = fundedPercent(p.fundedAmount, p.targetAmount)
+            const isOwner = Boolean(
+              sessionUserId && p.createdById === sessionUserId,
+            )
+            const legacyImage = p.coverImageUrl?.trim()
+            const trimmedAlt = p.coverImageAlt?.trim()
+            const imageAlt = trimmedAlt || (legacyImage ? p.title : undefined)
+
+            const card = {
+              badge: FUND_PROJECT_LEVEL_LABEL[p.projectLevel],
+              name:
+                p.createdBy.displayName?.trim() ||
+                p.createdBy.name ||
+                'Creator',
+              dept: cardAffiliationLine(p.createdBy),
+              title: p.title,
+              progress: pct,
+              target: p.targetAmount,
+              imageUrl: legacyImage || undefined,
+              imageAlt,
+              imagePlaceholderText: p.tags[0]?.name,
+            }
+
             return (
               <FundmeCard
                 key={p.id}
                 {...card}
+                onCardClick={() =>
+                  navigateGlobal({
+                    to: '/fund-a-project/$id',
+                    params: { id: p.id },
+                  })
+                }
                 onViewDetails={() =>
                   navigateGlobal({
                     to: '/fund-a-project/$id',
-                    params: { id },
+                    params: { id: p.id },
                   })
+                }
+                onEdit={
+                  isOwner
+                    ? () =>
+                        navigateGlobal({
+                          to: '/u/$uId/fund-a-project/$fundAProjectId/edit',
+                          params: {
+                            uId: sessionUserId!,
+                            fundAProjectId: p.id,
+                          },
+                        })
+                    : undefined
                 }
               />
             )

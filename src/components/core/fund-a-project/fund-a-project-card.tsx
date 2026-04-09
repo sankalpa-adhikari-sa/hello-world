@@ -1,7 +1,4 @@
-import type {
-  FundMeMinimalCardProps,
-  FundmeCardProps,
-} from '@/types/fund-a-project'
+import { Pencil } from 'lucide-react'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -9,10 +6,29 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Meter, MeterLabel, MeterValue } from '@/components/ui/meter'
 
-export type {
-  FundmeCardProps,
-  FundMeMinimalCardProps,
-} from '@/types/fund-a-project'
+export interface FundmeCardProps {
+  badge: string
+  name: string
+  dept: string
+  title: string
+  progress: number
+  target: number
+  imageUrl?: string
+  imageAlt?: string
+  imagePlaceholderText?: string
+  onCardClick?: () => void
+  onEdit?: () => void
+  onViewDetails?: () => void
+}
+
+export interface FundMeMinimalCardProps {
+  fundedPercent: number
+  raisedAmount: number
+  targetAmount: number
+  fundedMeterLabel?: string
+  raisedLabel?: string
+  targetLabel?: string
+}
 
 export function FundmeCard({
   badge,
@@ -24,11 +40,24 @@ export function FundmeCard({
   imagePlaceholderText = '',
   imageUrl,
   imageAlt,
+  onCardClick,
+  onEdit,
   onViewDetails,
 }: FundmeCardProps) {
   const coverAlt = imageAlt?.trim() || title
   return (
-    <Card className="flex flex-col h-full border-2 border-border shadow-sm pt-0">
+    <Card
+      className="flex h-full cursor-pointer flex-col border-2 border-border pt-0 shadow-sm"
+      onClick={onCardClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onCardClick?.()
+        }
+      }}
+    >
       <CardHeader className="p-0 relative h-68 border-b-2 border-border bg-muted flex items-center justify-center overflow-hidden space-y-0">
         {imageUrl ? (
           <img
@@ -52,6 +81,21 @@ export function FundmeCard({
         <Badge className="absolute top-3 right-3 z-10 bg-primary text-primary-foreground border-2 border-border px-2 py-0.5 text-xs font-bold uppercase tracking-widest shadow-2xs rounded-none hover:bg-primary">
           {badge}
         </Badge>
+        {onEdit ? (
+          <Button
+            type="button"
+            size="icon"
+            variant="secondary"
+            className="absolute top-3 left-3 z-10 size-7"
+            aria-label="Edit campaign"
+            onClick={(e) => {
+              e.stopPropagation()
+              onEdit()
+            }}
+          >
+            <Pencil className="size-3.5" />
+          </Button>
+        ) : null}
       </CardHeader>
 
       <CardContent className="p-5 flex flex-col flex-grow">
@@ -97,7 +141,14 @@ export function FundmeCard({
           </span>
         </div>
 
-        <Button variant="outline" type="button" onClick={onViewDetails}>
+        <Button
+          variant="outline"
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            onViewDetails?.()
+          }}
+        >
           View Details
         </Button>
       </CardFooter>

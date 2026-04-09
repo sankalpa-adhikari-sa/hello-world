@@ -3,11 +3,11 @@
 import { useForm } from '@tanstack/react-form'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
-import { useEffect } from 'react'
 import { toast } from 'sonner'
 
 import type {
-  FundAProjectCreateFormValues,
+  FundAProjectInput,
+  FundAProjectOutput,
   FundProjectLevel,
 } from '@/types/fund-a-project'
 import { RichTextEditor } from '@/components/core/tiptap/rich-text-editor'
@@ -22,66 +22,99 @@ import {
   FieldSet,
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 import {
-  createFundAProject,
-  getFundAProjectById,
-  updateFundAProject,
-} from '@/sfn/fund-a-project'
+  getRichTextEditorContent,
+  setRichTextEditorContent,
+} from '@/lib/rich-text-content'
+import { createFundAProject, updateFundAProject } from '@/sfn/fund-a-project'
 import { listTagsForRequestsFormQO } from '@/sfn/requests'
 import {
   FUND_PROJECT_LEVEL_KEYS,
   FUND_PROJECT_LEVEL_LABEL,
-  buildFundAProjectPayloadContent,
-  defaultFundAProjectCreateFormValues,
-  extractFundAProjectStory,
-  extractLegacyFundAProjectCoverImageUrl,
-  fundAProjectCreateFormSchema,
+  fundAProjectInputSchema,
 } from '@/types/fund-a-project'
 
 const authenticatedRouteApi = getRouteApi('/_authenticated')
 
 export interface FundAProjectFormProps {
   mode: 'create' | 'edit'
-  /** Required when `mode` is `edit` */
   fundAProjectId?: string
+  initialProject?: FundAProjectOutput | null
 }
 
-export function FundAProjectForm({
+function toFundAProjectFormValues(
+  project: FundAProjectOutput,
+): FundAProjectInput {
+  return {
+    title: project.title,
+    subtitle: project.subtitle ?? undefined,
+    targetAmount: project.targetAmount,
+    fundedAmount: project.fundedAmount,
+    projectLevel: project.projectLevel,
+    coverImageUrl: project.coverImageUrl?.trim() || undefined,
+    coverImageAlt: project.coverImageAlt ?? undefined,
+    content: project.content ?? {},
+    tagIds: project.tags.map((t) => t.id),
+  }
+}
+
+type FundAProjectFormInnerProps = {
+  mode: 'create' | 'edit'
+  fundAProjectId?: string
+  initialValues: FundAProjectInput
+}
+
+function toTextInputValue(value: string | null | undefined): string {
+  return value ?? ''
+}
+
+function toOptionalString(
+  value: string | null | undefined,
+): string | undefined {
+  if (!value) return undefined
+  const trimmed = value.trim()
+  return trimmed ? trimmed : undefined
+}
+
+function normalizePayload(values: FundAProjectInput): FundAProjectInput {
+  return fundAProjectInputSchema.parse({
+    ...values,
+    subtitle: toOptionalString(values.subtitle),
+    coverImageUrl: toOptionalString(values.coverImageUrl),
+    coverImageAlt: toOptionalString(values.coverImageAlt),
+    tagIds: values.tagIds ?? [],
+    content:
+      values.content &&
+      typeof values.content === 'object' &&
+      !Array.isArray(values.content)
+        ? values.content
+        : {},
+  })
+}
+
+function FundAProjectFormInner({
   mode,
   fundAProjectId,
-}: FundAProjectFormProps) {
+  initialValues,
+}: FundAProjectFormInnerProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { currentUser: authBundle } = authenticatedRouteApi.useLoaderData()
-  const sessionUserId = authBundle.currentUser.id
-
   const tagsQuery = useQuery(listTagsForRequestsFormQO())
-
-  const projectQuery = useQuery({
-    queryKey: ['fund-a-project', fundAProjectId],
-    queryFn: () => getFundAProjectById({ data: { id: fundAProjectId! } }),
-    enabled: mode === 'edit' && Boolean(fundAProjectId),
-  })
-
-  const project = projectQuery.data ?? undefined
-  const isOwner = project && sessionUserId === project.createdById
+  const isAddMode = mode === 'create'
 
   const createMutation = useMutation({
-    mutationFn: async (value: FundAProjectCreateFormValues) => {
+    mutationFn: async (value: FundAProjectInput) => {
       return createFundAProject({
-        data: {
-          title: value.title,
-          subtitle: value.subtitle || undefined,
-          targetAmount: value.targetAmount,
-          fundedAmount: value.fundedAmount,
-          projectLevel: value.projectLevel,
-          coverImageUrl: value.coverImageUrl?.trim() || undefined,
-          coverImageAlt: value.coverImageAlt?.trim() || undefined,
-          content: buildFundAProjectPayloadContent(value),
-          tagIds: value.tagIds.length ? value.tagIds : undefined,
-        },
+        data: value,
       })
     },
     onSuccess: async (row) => {
@@ -99,20 +132,12 @@ export function FundAProjectForm({
   })
 
   const updateMutation = useMutation({
-    mutationFn: async (value: FundAProjectCreateFormValues) => {
+    mutationFn: async (value: FundAProjectInput) => {
       if (!fundAProjectId) throw new Error('Missing campaign id')
       return updateFundAProject({
         data: {
           id: fundAProjectId,
-          title: value.title,
-          subtitle: value.subtitle || undefined,
-          targetAmount: value.targetAmount,
-          fundedAmount: value.fundedAmount,
-          projectLevel: value.projectLevel,
-          coverImageUrl: value.coverImageUrl?.trim() || undefined,
-          coverImageAlt: value.coverImageAlt?.trim() || undefined,
-          content: buildFundAProjectPayloadContent(value),
-          tagIds: value.tagIds,
+          ...value,
         },
       })
     },
@@ -139,71 +164,27 @@ export function FundAProjectForm({
   })
 
   const form = useForm({
-    defaultValues: defaultFundAProjectCreateFormValues(),
-    validators: {
-      onSubmit: fundAProjectCreateFormSchema,
-    },
+    defaultValues: initialValues,
     onSubmit: async ({ value }) => {
-      if (mode === 'create') {
-        await createMutation.mutateAsync(value)
-      } else {
-        await updateMutation.mutateAsync(value)
+      try {
+        const parsedPayload = normalizePayload(value)
+        if (isAddMode) {
+          await createMutation.mutateAsync(parsedPayload)
+        } else {
+          await updateMutation.mutateAsync(parsedPayload)
+        }
+      } catch (error) {
+        console.error(error)
+        toast.error(
+          isAddMode ? 'Could not create campaign' : 'Could not update campaign',
+          {
+            description:
+              error instanceof Error ? error.message : 'Unknown error',
+          },
+        )
       }
     },
   })
-
-  useEffect(() => {
-    if (mode !== 'edit' || !project) return
-    form.reset({
-      title: project.title,
-      subtitle: project.subtitle ?? '',
-      targetAmount: project.targetAmount,
-      fundedAmount: project.fundedAmount,
-      projectLevel: project.projectLevel,
-      coverImageUrl:
-        project.coverImageUrl?.trim() ||
-        extractLegacyFundAProjectCoverImageUrl(project.content) ||
-        '',
-      coverImageAlt: project.coverImageAlt ?? '',
-      story: extractFundAProjectStory(project.content),
-      tagIds: project.tags.map((t) => t.id),
-    })
-  }, [mode, project?.id, project?.updatedAt, form])
-
-  if (mode === 'edit') {
-    if (!fundAProjectId) {
-      return (
-        <p className="text-muted-foreground p-6 text-sm">
-          Missing campaign id.
-        </p>
-      )
-    }
-    if (projectQuery.isLoading) {
-      return (
-        <div className="text-muted-foreground flex items-center gap-2 p-6 text-sm">
-          <Spinner />
-          Loading campaign…
-        </div>
-      )
-    }
-    if (!project) {
-      return (
-        <p className="text-muted-foreground p-6 text-sm">Campaign not found.</p>
-      )
-    }
-    if (!isOwner) {
-      return (
-        <p className="text-muted-foreground p-6 text-sm">
-          You can only edit campaigns you created.
-        </p>
-      )
-    }
-  }
-
-  const submitting =
-    form.state.isSubmitting ||
-    createMutation.isPending ||
-    updateMutation.isPending
 
   return (
     <form
@@ -226,7 +207,7 @@ export function FundAProjectForm({
                 <Input
                   id={field.name}
                   name={field.name}
-                  value={field.state.value}
+                  value={toTextInputValue(field.state.value)}
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
                   aria-invalid={isInvalid}
@@ -249,7 +230,7 @@ export function FundAProjectForm({
                 <Input
                   id={field.name}
                   name={field.name}
-                  value={field.state.value}
+                  value={toTextInputValue(field.state.value)}
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
                   aria-invalid={isInvalid}
@@ -330,24 +311,28 @@ export function FundAProjectForm({
               children={(field) => (
                 <Field>
                   <FieldLabel htmlFor={field.name}>Project level</FieldLabel>
-                  <select
-                    id={field.name}
-                    name={field.name}
+                  <Select
                     value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(e) =>
-                      field.handleChange(e.target.value as FundProjectLevel)
+                    onValueChange={(value) =>
+                      field.handleChange(value as FundProjectLevel)
                     }
-                    className={cn(
-                      'bg-input/20 dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/30 h-7 rounded-md border px-2 py-0.5 text-sm transition-colors focus-visible:ring-2 md:text-xs/relaxed w-full min-w-0 outline-none',
-                    )}
                   >
-                    {FUND_PROJECT_LEVEL_KEYS.map((key) => (
-                      <option key={key} value={key}>
-                        {FUND_PROJECT_LEVEL_LABEL[key]}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger
+                      id={field.name}
+                      name={field.name}
+                      onBlur={field.handleBlur}
+                      className={cn('w-full')}
+                    >
+                      <SelectValue placeholder="Select project level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {FUND_PROJECT_LEVEL_KEYS.map((key) => (
+                        <SelectItem key={key} value={key}>
+                          {FUND_PROJECT_LEVEL_LABEL[key]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </Field>
               )}
             />
@@ -358,7 +343,7 @@ export function FundAProjectForm({
                   <FieldLabel htmlFor={field.name}>Cover image URL</FieldLabel>
                   <Input
                     id={field.name}
-                    value={field.state.value}
+                    value={toTextInputValue(field.state.value)}
                     onBlur={field.handleBlur}
                     onChange={(e) => field.handleChange(e.target.value)}
                     placeholder="https://…"
@@ -376,7 +361,7 @@ export function FundAProjectForm({
                   </FieldLabel>
                   <Input
                     id={field.name}
-                    value={field.state.value}
+                    value={toTextInputValue(field.state.value)}
                     onBlur={field.handleBlur}
                     onChange={(e) => field.handleChange(e.target.value)}
                     placeholder="Short description for screen readers"
@@ -389,7 +374,7 @@ export function FundAProjectForm({
         </FieldSet>
 
         <form.Field
-          name="story"
+          name="content"
           children={(field) => {
             const isInvalid =
               field.state.meta.isTouched && !field.state.meta.isValid
@@ -398,9 +383,18 @@ export function FundAProjectForm({
                 <FieldLabel htmlFor={field.name}>Story</FieldLabel>
                 <div id={field.name} className="mt-1">
                   <RichTextEditor
-                    content={field.state.value}
+                    content={getRichTextEditorContent(
+                      field.state.value,
+                      'story',
+                    )}
                     onChange={(json) => {
-                      field.handleChange(json)
+                      field.handleChange(
+                        setRichTextEditorContent(
+                          field.state.value,
+                          json as unknown as Record<string, unknown>,
+                          'story',
+                        ),
+                      )
                     }}
                     placeholder="Describe your project, timeline, and how funds will be used…"
                     className="w-full"
@@ -431,11 +425,13 @@ export function FundAProjectForm({
                         className="flex cursor-pointer items-center gap-2 text-sm"
                       >
                         <Checkbox
-                          checked={field.state.value.includes(t.id)}
+                          checked={(field.state.value ?? []).includes(t.id)}
                           onCheckedChange={(checked) => {
                             const next = checked
-                              ? [...field.state.value, t.id]
-                              : field.state.value.filter((id) => id !== t.id)
+                              ? [...(field.state.value ?? []), t.id]
+                              : (field.state.value ?? []).filter(
+                                  (id) => id !== t.id,
+                                )
                             field.handleChange(next)
                           }}
                         />
@@ -454,28 +450,117 @@ export function FundAProjectForm({
         />
       </FieldGroup>
 
-      <div className="flex gap-3">
-        <Button type="submit" disabled={submitting} className="cursor-pointer">
-          {submitting ? (
-            <>
-              <Spinner />
-              {mode === 'create' ? 'Creating…' : 'Saving…'}
-            </>
-          ) : mode === 'create' ? (
-            'Create campaign'
-          ) : (
-            'Save changes'
-          )}
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          className="cursor-pointer"
-          onClick={() => navigate({ to: '/fund-a-project' })}
-        >
-          Cancel
-        </Button>
-      </div>
+      <form.Subscribe
+        selector={(state) => ({
+          isSubmitting: state.isSubmitting,
+          isDirty: state.isDirty,
+        })}
+        children={({ isSubmitting, isDirty }) => (
+          <div className="flex gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              className="cursor-pointer"
+              disabled={isSubmitting || !isDirty}
+              onClick={() => form.reset()}
+            >
+              Reset
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting || !isDirty}
+              className="cursor-pointer"
+            >
+              {isSubmitting ? (
+                <>
+                  <Spinner />
+                  {isAddMode ? 'Creating…' : 'Saving…'}
+                </>
+              ) : isAddMode ? (
+                'Create campaign'
+              ) : (
+                'Save changes'
+              )}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="cursor-pointer"
+              onClick={() =>
+                navigate({
+                  to: '/fund-a-project',
+                  search: {
+                    page: 1,
+                    pageSize: 12,
+                    q: undefined,
+                    sort: 'newest',
+                    tags: undefined,
+                    levels: undefined,
+                    featured: undefined,
+                  },
+                })
+              }
+            >
+              Cancel
+            </Button>
+          </div>
+        )}
+      />
     </form>
   )
+}
+
+export function FundAProjectForm({
+  mode,
+  fundAProjectId,
+  initialProject,
+}: FundAProjectFormProps) {
+  const { currentUser: authBundle } = authenticatedRouteApi.useLoaderData()
+  const sessionUserId = authBundle.currentUser.id
+  const isAddMode = mode === 'create'
+  const defaultValues: FundAProjectInput = {
+    title: '',
+    subtitle: undefined,
+    content: {},
+    targetAmount: 1000,
+    fundedAmount: 0,
+    projectLevel: 'undergrad',
+    coverImageUrl: undefined,
+    coverImageAlt: undefined,
+    tagIds: [],
+  }
+
+  if (!isAddMode) {
+    if (!fundAProjectId) {
+      return (
+        <p className="text-muted-foreground p-6 text-sm">
+          Missing campaign id.
+        </p>
+      )
+    }
+    const project = initialProject ?? undefined
+    if (!project) {
+      return (
+        <p className="text-muted-foreground p-6 text-sm">Campaign not found.</p>
+      )
+    }
+    const isOwner = sessionUserId === project.createdById
+    if (!isOwner) {
+      return (
+        <p className="text-muted-foreground p-6 text-sm">
+          You can only edit campaigns you created.
+        </p>
+      )
+    }
+
+    return (
+      <FundAProjectFormInner
+        mode={mode}
+        fundAProjectId={fundAProjectId}
+        initialValues={toFundAProjectFormValues(project)}
+      />
+    )
+  }
+
+  return <FundAProjectFormInner mode={mode} initialValues={defaultValues} />
 }

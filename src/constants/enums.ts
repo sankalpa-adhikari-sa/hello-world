@@ -44,3 +44,9 @@ export const COMPANY_SIZE = [
   { value: '201-500', label: '201–500' },
   { value: '500+', label: '500+' },
 ]
+
+export const FUND_PROJECT_LEVEL = [
+  { value: 'highschool', label: 'High school' },
+  { value: 'undergrad', label: 'Undergrad' },
+  { value: 'grad', label: 'Grad' },
+]

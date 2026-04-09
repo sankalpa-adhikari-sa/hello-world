@@ -19,15 +19,14 @@ import { db } from '@/db'
 import { request, requestTags } from '@/db/schema/request.schema'
 import { tags } from '@/db/schema/tags.schema'
 
-export const getRequestByIdInputSchema = z.object({
-  id: z.string().uuid(),
-})
-
-/**
- * Loads a single request with tags. Public read.
- */
 export const getRequestById = createServerFn({ method: 'GET' })
-  .inputValidator((data: unknown) => getRequestByIdInputSchema.parse(data))
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        id: z.uuid(),
+      })
+      .parse(data),
+  )
   .handler(async ({ data }) => {
     return loadRequestWithTags(data.id)
   })
@@ -38,9 +37,6 @@ export const getRequestByIdQO = (id: string) =>
     queryFn: () => getRequestById({ data: { id } }),
   })
 
-/**
- * Tag options for request forms (id + display name).
- */
 export const listTagsForRequestsForm = createServerFn({
   method: 'GET',
 }).handler(async () => {
@@ -110,16 +106,13 @@ async function assertAllTagIdsExist(tagIds: Array<string>) {
 }
 
 export const getRequestsInputSchema = z.object({
-  /** 1-based page index */
   page: z.number().min(1).default(1),
   limit: z.number().min(1).max(50).default(12),
   searchParam: z
     .object({
       query: z.string().optional(),
       sortBy: z.enum(['asc', 'desc']).optional(),
-      /** Requests that have at least one of these tags */
-      tagIds: z.array(z.string().uuid()).max(50).optional(),
-      /** Any of these request types */
+      tagIds: z.array(z.uuid()).max(50).optional(),
       requestTypes: z.array(requestTypeEnum).max(20).optional(),
     })
     .optional(),
@@ -127,7 +120,6 @@ export const getRequestsInputSchema = z.object({
 
 export type GetRequestsInput = z.infer<typeof getRequestsInputSchema>
 
-/** URL search params for `/_public/requests` */
 export const requestsPublicListSearchSchema = z.object({
   page: z.coerce.number().int().min(1).catch(1),
   pageSize: z.coerce.number().int().min(1).max(50).catch(12),
@@ -150,11 +142,6 @@ export type RequestsPublicListSearch = z.infer<
   typeof requestsPublicListSearchSchema
 >
 
-/**
- * Lists requests with optional title/subtitle search, optional tag filter (any match),
- * optional request-type filter, sort by `createdAt`, and offset pagination.
- * Each row includes a `tags` array `{ id, name }`. Public (no auth).
- */
 export const getRequests = createServerFn({ method: 'GET' })
   .inputValidator((data: unknown) =>
     getRequestsInputSchema.parse(
@@ -239,14 +226,11 @@ export const createRequestSchema = z.object({
   subtitle: z.string().nullish(),
   content: z.any().optional().default({}),
   requestType: requestTypeEnum,
-  tagIds: z.array(z.string().uuid()).max(50).optional(),
+  tagIds: z.array(z.uuid()).max(50).optional(),
 })
 
 export type CreateRequestInput = z.infer<typeof createRequestSchema>
 
-/**
- * Creates a request for the authenticated user and attaches optional tags.
- */
 export const createRequest = createServerFn({ method: 'POST' })
   .inputValidator((data: unknown) => createRequestSchema.parse(data))
   .handler(async ({ data }) => {
@@ -293,21 +277,16 @@ export const createRequest = createServerFn({ method: 'POST' })
   })
 
 export const updateRequestSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   title: z.string().min(1).optional(),
   subtitle: z.string().nullish().optional(),
   content: z.any().optional(),
   requestType: requestTypeEnum.optional(),
-  /** When set, replaces all tag links for this request (use `[]` to clear). */
-  tagIds: z.array(z.string().uuid()).max(50).optional(),
+  tagIds: z.array(z.uuid()).max(50).optional(),
 })
 
 export type UpdateRequestInput = z.infer<typeof updateRequestSchema>
 
-/**
- * Updates a request. Only the creator may update it.
- * Pass `tagIds` to replace associations; omit `tagIds` to leave tags unchanged.
- */
 export const updateRequest = createServerFn({ method: 'POST' })
   .inputValidator((data: unknown) => updateRequestSchema.parse(data))
   .handler(async ({ data }) => {
@@ -366,15 +345,14 @@ export const updateRequest = createServerFn({ method: 'POST' })
     return loadRequestWithTags(data.id)
   })
 
-export const deleteRequestSchema = z.object({
-  id: z.string().uuid(),
-})
-
-/**
- * Deletes a request (and its `request_tags` rows via cascade). Only the creator may delete.
- */
 export const deleteRequest = createServerFn({ method: 'POST' })
-  .inputValidator((data: unknown) => deleteRequestSchema.parse(data))
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        id: z.uuid(),
+      })
+      .parse(data),
+  )
   .handler(async ({ data }) => {
     const { currentUser } = await getCurrentUser()
 

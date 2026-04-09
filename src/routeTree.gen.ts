@@ -34,7 +34,10 @@ import { Route as AuthenticatedOrgsOrgIdMembersRouteImport } from './routes/_aut
 import { Route as AuthenticatedOrgsOrgIdEventsRouteImport } from './routes/_authenticated/orgs/$orgId/events'
 import { Route as AuthenticatedOrgsOrgIdDashboardRouteImport } from './routes/_authenticated/orgs/$orgId/dashboard'
 import { Route as AuthenticatedUUIdTagsIndexRouteImport } from './routes/_authenticated/u/$uId/tags/index'
+import { Route as AuthenticatedUUIdProfileIndexRouteImport } from './routes/_authenticated/u/$uId/profile/index'
 import { Route as AuthenticatedUUIdRequestsNewRouteImport } from './routes/_authenticated/u/$uId/requests/new'
+import { Route as AuthenticatedUUIdProfileNewRouteImport } from './routes/_authenticated/u/$uId/profile/new'
+import { Route as AuthenticatedUUIdProfileEditRouteImport } from './routes/_authenticated/u/$uId/profile/edit'
 import { Route as AuthenticatedUUIdFundAProjectNewRouteImport } from './routes/_authenticated/u/$uId/fund-a-project/new'
 import { Route as AuthenticatedUUIdRequestsRequestIdEditRouteImport } from './routes/_authenticated/u/$uId/requests/$requestId/edit'
 import { Route as AuthenticatedUUIdFundAProjectFundAProjectIdEditRouteImport } from './routes/_authenticated/u/$uId/fund-a-project/$fundAProjectId/edit'
@@ -170,11 +173,29 @@ const AuthenticatedUUIdTagsIndexRoute =
     path: '/u/$uId/tags/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedUUIdProfileIndexRoute =
+  AuthenticatedUUIdProfileIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedUUIdProfileRoute,
+  } as any)
 const AuthenticatedUUIdRequestsNewRoute =
   AuthenticatedUUIdRequestsNewRouteImport.update({
     id: '/u/$uId/requests/new',
     path: '/u/$uId/requests/new',
     getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedUUIdProfileNewRoute =
+  AuthenticatedUUIdProfileNewRouteImport.update({
+    id: '/new',
+    path: '/new',
+    getParentRoute: () => AuthenticatedUUIdProfileRoute,
+  } as any)
+const AuthenticatedUUIdProfileEditRoute =
+  AuthenticatedUUIdProfileEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthenticatedUUIdProfileRoute,
   } as any)
 const AuthenticatedUUIdFundAProjectNewRoute =
   AuthenticatedUUIdFundAProjectNewRouteImport.update({
@@ -216,10 +237,13 @@ export interface FileRoutesByFullPath {
   '/orgs/$orgId/profile': typeof AuthenticatedOrgsOrgIdProfileRoute
   '/orgs/$orgId/settings': typeof AuthenticatedOrgsOrgIdSettingsRoute
   '/u/$uId/fundme': typeof AuthenticatedUUIdFundmeRoute
-  '/u/$uId/profile': typeof AuthenticatedUUIdProfileRoute
+  '/u/$uId/profile': typeof AuthenticatedUUIdProfileRouteWithChildren
   '/u/$uId/settings': typeof AuthenticatedUUIdSettingsRoute
   '/u/$uId/fund-a-project/new': typeof AuthenticatedUUIdFundAProjectNewRoute
+  '/u/$uId/profile/edit': typeof AuthenticatedUUIdProfileEditRoute
+  '/u/$uId/profile/new': typeof AuthenticatedUUIdProfileNewRoute
   '/u/$uId/requests/new': typeof AuthenticatedUUIdRequestsNewRoute
+  '/u/$uId/profile/': typeof AuthenticatedUUIdProfileIndexRoute
   '/u/$uId/tags': typeof AuthenticatedUUIdTagsIndexRoute
   '/u/$uId/fund-a-project/$fundAProjectId/edit': typeof AuthenticatedUUIdFundAProjectFundAProjectIdEditRoute
   '/u/$uId/requests/$requestId/edit': typeof AuthenticatedUUIdRequestsRequestIdEditRoute
@@ -243,10 +267,12 @@ export interface FileRoutesByTo {
   '/orgs/$orgId/profile': typeof AuthenticatedOrgsOrgIdProfileRoute
   '/orgs/$orgId/settings': typeof AuthenticatedOrgsOrgIdSettingsRoute
   '/u/$uId/fundme': typeof AuthenticatedUUIdFundmeRoute
-  '/u/$uId/profile': typeof AuthenticatedUUIdProfileRoute
   '/u/$uId/settings': typeof AuthenticatedUUIdSettingsRoute
   '/u/$uId/fund-a-project/new': typeof AuthenticatedUUIdFundAProjectNewRoute
+  '/u/$uId/profile/edit': typeof AuthenticatedUUIdProfileEditRoute
+  '/u/$uId/profile/new': typeof AuthenticatedUUIdProfileNewRoute
   '/u/$uId/requests/new': typeof AuthenticatedUUIdRequestsNewRoute
+  '/u/$uId/profile': typeof AuthenticatedUUIdProfileIndexRoute
   '/u/$uId/tags': typeof AuthenticatedUUIdTagsIndexRoute
   '/u/$uId/fund-a-project/$fundAProjectId/edit': typeof AuthenticatedUUIdFundAProjectFundAProjectIdEditRoute
   '/u/$uId/requests/$requestId/edit': typeof AuthenticatedUUIdRequestsRequestIdEditRoute
@@ -275,10 +301,13 @@ export interface FileRoutesById {
   '/_authenticated/orgs/$orgId/profile': typeof AuthenticatedOrgsOrgIdProfileRoute
   '/_authenticated/orgs/$orgId/settings': typeof AuthenticatedOrgsOrgIdSettingsRoute
   '/_authenticated/u/$uId/fundme': typeof AuthenticatedUUIdFundmeRoute
-  '/_authenticated/u/$uId/profile': typeof AuthenticatedUUIdProfileRoute
+  '/_authenticated/u/$uId/profile': typeof AuthenticatedUUIdProfileRouteWithChildren
   '/_authenticated/u/$uId/settings': typeof AuthenticatedUUIdSettingsRoute
   '/_authenticated/u/$uId/fund-a-project/new': typeof AuthenticatedUUIdFundAProjectNewRoute
+  '/_authenticated/u/$uId/profile/edit': typeof AuthenticatedUUIdProfileEditRoute
+  '/_authenticated/u/$uId/profile/new': typeof AuthenticatedUUIdProfileNewRoute
   '/_authenticated/u/$uId/requests/new': typeof AuthenticatedUUIdRequestsNewRoute
+  '/_authenticated/u/$uId/profile/': typeof AuthenticatedUUIdProfileIndexRoute
   '/_authenticated/u/$uId/tags/': typeof AuthenticatedUUIdTagsIndexRoute
   '/_authenticated/u/$uId/fund-a-project/$fundAProjectId/edit': typeof AuthenticatedUUIdFundAProjectFundAProjectIdEditRoute
   '/_authenticated/u/$uId/requests/$requestId/edit': typeof AuthenticatedUUIdRequestsRequestIdEditRoute
@@ -309,7 +338,10 @@ export interface FileRouteTypes {
     | '/u/$uId/profile'
     | '/u/$uId/settings'
     | '/u/$uId/fund-a-project/new'
+    | '/u/$uId/profile/edit'
+    | '/u/$uId/profile/new'
     | '/u/$uId/requests/new'
+    | '/u/$uId/profile/'
     | '/u/$uId/tags'
     | '/u/$uId/fund-a-project/$fundAProjectId/edit'
     | '/u/$uId/requests/$requestId/edit'
@@ -333,10 +365,12 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/profile'
     | '/orgs/$orgId/settings'
     | '/u/$uId/fundme'
-    | '/u/$uId/profile'
     | '/u/$uId/settings'
     | '/u/$uId/fund-a-project/new'
+    | '/u/$uId/profile/edit'
+    | '/u/$uId/profile/new'
     | '/u/$uId/requests/new'
+    | '/u/$uId/profile'
     | '/u/$uId/tags'
     | '/u/$uId/fund-a-project/$fundAProjectId/edit'
     | '/u/$uId/requests/$requestId/edit'
@@ -367,7 +401,10 @@ export interface FileRouteTypes {
     | '/_authenticated/u/$uId/profile'
     | '/_authenticated/u/$uId/settings'
     | '/_authenticated/u/$uId/fund-a-project/new'
+    | '/_authenticated/u/$uId/profile/edit'
+    | '/_authenticated/u/$uId/profile/new'
     | '/_authenticated/u/$uId/requests/new'
+    | '/_authenticated/u/$uId/profile/'
     | '/_authenticated/u/$uId/tags/'
     | '/_authenticated/u/$uId/fund-a-project/$fundAProjectId/edit'
     | '/_authenticated/u/$uId/requests/$requestId/edit'
@@ -558,12 +595,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUUIdTagsIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/u/$uId/profile/': {
+      id: '/_authenticated/u/$uId/profile/'
+      path: '/'
+      fullPath: '/u/$uId/profile/'
+      preLoaderRoute: typeof AuthenticatedUUIdProfileIndexRouteImport
+      parentRoute: typeof AuthenticatedUUIdProfileRoute
+    }
     '/_authenticated/u/$uId/requests/new': {
       id: '/_authenticated/u/$uId/requests/new'
       path: '/u/$uId/requests/new'
       fullPath: '/u/$uId/requests/new'
       preLoaderRoute: typeof AuthenticatedUUIdRequestsNewRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/u/$uId/profile/new': {
+      id: '/_authenticated/u/$uId/profile/new'
+      path: '/new'
+      fullPath: '/u/$uId/profile/new'
+      preLoaderRoute: typeof AuthenticatedUUIdProfileNewRouteImport
+      parentRoute: typeof AuthenticatedUUIdProfileRoute
+    }
+    '/_authenticated/u/$uId/profile/edit': {
+      id: '/_authenticated/u/$uId/profile/edit'
+      path: '/edit'
+      fullPath: '/u/$uId/profile/edit'
+      preLoaderRoute: typeof AuthenticatedUUIdProfileEditRouteImport
+      parentRoute: typeof AuthenticatedUUIdProfileRoute
     }
     '/_authenticated/u/$uId/fund-a-project/new': {
       id: '/_authenticated/u/$uId/fund-a-project/new'
@@ -589,6 +647,24 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedUUIdProfileRouteChildren {
+  AuthenticatedUUIdProfileEditRoute: typeof AuthenticatedUUIdProfileEditRoute
+  AuthenticatedUUIdProfileNewRoute: typeof AuthenticatedUUIdProfileNewRoute
+  AuthenticatedUUIdProfileIndexRoute: typeof AuthenticatedUUIdProfileIndexRoute
+}
+
+const AuthenticatedUUIdProfileRouteChildren: AuthenticatedUUIdProfileRouteChildren =
+  {
+    AuthenticatedUUIdProfileEditRoute: AuthenticatedUUIdProfileEditRoute,
+    AuthenticatedUUIdProfileNewRoute: AuthenticatedUUIdProfileNewRoute,
+    AuthenticatedUUIdProfileIndexRoute: AuthenticatedUUIdProfileIndexRoute,
+  }
+
+const AuthenticatedUUIdProfileRouteWithChildren =
+  AuthenticatedUUIdProfileRoute._addFileChildren(
+    AuthenticatedUUIdProfileRouteChildren,
+  )
+
 interface AuthenticatedRouteChildren {
   AuthenticatedUDashboardRoute: typeof AuthenticatedUDashboardRoute
   AuthenticatedOrgsOrgIdDashboardRoute: typeof AuthenticatedOrgsOrgIdDashboardRoute
@@ -597,7 +673,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedOrgsOrgIdProfileRoute: typeof AuthenticatedOrgsOrgIdProfileRoute
   AuthenticatedOrgsOrgIdSettingsRoute: typeof AuthenticatedOrgsOrgIdSettingsRoute
   AuthenticatedUUIdFundmeRoute: typeof AuthenticatedUUIdFundmeRoute
-  AuthenticatedUUIdProfileRoute: typeof AuthenticatedUUIdProfileRoute
+  AuthenticatedUUIdProfileRoute: typeof AuthenticatedUUIdProfileRouteWithChildren
   AuthenticatedUUIdSettingsRoute: typeof AuthenticatedUUIdSettingsRoute
   AuthenticatedUUIdFundAProjectNewRoute: typeof AuthenticatedUUIdFundAProjectNewRoute
   AuthenticatedUUIdRequestsNewRoute: typeof AuthenticatedUUIdRequestsNewRoute
@@ -614,7 +690,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedOrgsOrgIdProfileRoute: AuthenticatedOrgsOrgIdProfileRoute,
   AuthenticatedOrgsOrgIdSettingsRoute: AuthenticatedOrgsOrgIdSettingsRoute,
   AuthenticatedUUIdFundmeRoute: AuthenticatedUUIdFundmeRoute,
-  AuthenticatedUUIdProfileRoute: AuthenticatedUUIdProfileRoute,
+  AuthenticatedUUIdProfileRoute: AuthenticatedUUIdProfileRouteWithChildren,
   AuthenticatedUUIdSettingsRoute: AuthenticatedUUIdSettingsRoute,
   AuthenticatedUUIdFundAProjectNewRoute: AuthenticatedUUIdFundAProjectNewRoute,
   AuthenticatedUUIdRequestsNewRoute: AuthenticatedUUIdRequestsNewRoute,

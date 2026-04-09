@@ -3,9 +3,11 @@ import { getRequestHeaders } from '@tanstack/react-start/server'
 import { redirect } from '@tanstack/react-router'
 import { queryOptions } from '@tanstack/react-query'
 import z from 'zod'
+import { and } from 'drizzle-orm'
 import { db, eq } from '@/db'
 import { user, userProfile } from '@/db/schema/auth.schema'
 import { auth } from '@/lib/auth/auth'
+import { userProfileInputSchema } from '@/types/user'
 
 /**
  * Retrieves the current active session from the better auth.
@@ -102,8 +104,8 @@ export const GetUserProfileSchema = z.object({
 export const getCurrentUserProfile = createServerFn()
   .inputValidator((data: unknown) => GetUserProfileSchema.parse(data))
   .handler(async ({ data }) => {
-    const user = await getCurrentUser()
-    const userId = data.userId ?? user.currentUser.id
+    const current = await getCurrentUser()
+    const userId = data.userId ?? current.currentUser.id
     const profile = await db.query.userProfile.findFirst({
       where: eq(userProfile.userId, userId),
     })
@@ -123,3 +125,67 @@ export const getCurrentUserProfileQO = (
     queryFn: () => getCurrentUserProfile({ data: params }),
   })
 }
+
+export const createUserProfile = createServerFn({ method: 'POST' })
+  .inputValidator((data: unknown) => userProfileInputSchema.parse(data))
+  .handler(async ({ data }) => {
+    const { currentUser } = await getCurrentUser()
+    const existing = await db.query.userProfile.findFirst({
+      where: eq(userProfile.userId, currentUser.id),
+    })
+    if (existing) {
+      throw new Error('Profile already exists for this user')
+    }
+    const [row] = await db
+      .insert(userProfile)
+      .values({
+        userId: currentUser.id,
+        displayName: data.displayName ?? null,
+        bio: data.bio ?? null,
+        headline: data.headline ?? null,
+        websiteUrl: data.websiteUrl ?? null,
+        location: data.location ?? null,
+        isStudent: data.isStudent,
+        studentMajor: data.studentMajor ?? null,
+        studentGraduationYear: data.studentGraduationYear ?? null,
+        isOnboardingCompleted: true,
+        createdAt: new Date(),
+      })
+      .returning()
+    return row
+  })
+
+const updateUserProfileSchema = userProfileInputSchema.extend({
+  userId: z.uuid(),
+})
+
+export const updateUserProfile = createServerFn({ method: 'POST' })
+  .inputValidator((data: unknown) => updateUserProfileSchema.parse(data))
+  .handler(async ({ data }) => {
+    const { currentUser } = await getCurrentUser()
+    const existing = await db.query.userProfile.findFirst({
+      where: and(
+        eq(userProfile.userId, currentUser.id),
+        eq(userProfile.userId, data.userId),
+      ),
+    })
+    if (!existing) {
+      return null
+    }
+    const [row] = await db
+      .update(userProfile)
+      .set({
+        displayName: data.displayName ?? null,
+        bio: data.bio ?? null,
+        headline: data.headline ?? null,
+        websiteUrl: data.websiteUrl ?? null,
+        location: data.location ?? null,
+        isStudent: data.isStudent,
+        studentMajor: data.studentMajor ?? null,
+        studentGraduationYear: data.studentGraduationYear ?? null,
+        isOnboardingCompleted: true,
+      })
+      .where(eq(userProfile.userId, data.userId))
+      .returning()
+    return row
+  })

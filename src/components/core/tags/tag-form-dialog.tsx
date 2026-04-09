@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { toast } from 'sonner'
 
-import type { TagFormValues } from '@/types/tags'
+import type { TagsInput } from '@/types/tags'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -26,9 +26,9 @@ import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import { Switch } from '@/components/ui/switch'
 import { createTag, updateTag } from '@/sfn/tags'
-import { tagFormSchema } from '@/types/tags'
+import { tagsInputSchema } from '@/types/tags'
 
-const defaultValues: TagFormValues = {
+const defaultValues: TagsInput = {
   name: '',
   isPublic: false,
 }
@@ -49,9 +49,9 @@ export function TagFormDialog({
   const queryClient = useQueryClient()
 
   const createMutation = useMutation({
-    mutationFn: (value: TagFormValues) =>
+    mutationFn: (value: TagsInput) =>
       createTag({
-        data: { name: value.name, isPublic: value.isPublic },
+        data: value,
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['tags'] })
@@ -66,12 +66,10 @@ export function TagFormDialog({
   })
 
   const updateMutation = useMutation({
-    mutationFn: (value: TagFormValues & { id: string }) =>
+    mutationFn: (value: TagsInput & { id: string }) =>
       updateTag({
         data: {
-          id: value.id,
-          name: value.name,
-          isPublic: value.isPublic,
+          ...value,
         },
       }),
     onSuccess: async (row) => {
@@ -94,14 +92,25 @@ export function TagFormDialog({
 
   const form = useForm({
     defaultValues,
-    validators: {
-      onSubmit: tagFormSchema,
-    },
     onSubmit: async ({ value }) => {
-      if (mode === 'create') {
-        await createMutation.mutateAsync(value)
-      } else if (tag) {
-        await updateMutation.mutateAsync({ ...value, id: tag.id })
+      try {
+        const parsedPayload = tagsInputSchema.parse({
+          name: value.name,
+          isPublic: Boolean(value.isPublic),
+        })
+        if (mode === 'create') {
+          await createMutation.mutateAsync(parsedPayload)
+        } else if (tag) {
+          await updateMutation.mutateAsync({ ...parsedPayload, id: tag.id })
+        }
+      } catch (error) {
+        toast.error(
+          mode === 'create' ? 'Could not create tag' : 'Could not update tag',
+          {
+            description:
+              error instanceof Error ? error.message : 'Unknown error',
+          },
+        )
       }
     },
   })
@@ -179,7 +188,7 @@ export function TagFormDialog({
                       </p>
                     </div>
                     <Switch
-                      checked={field.state.value}
+                      checked={Boolean(field.state.value)}
                       onCheckedChange={(checked) =>
                         field.handleChange(Boolean(checked))
                       }

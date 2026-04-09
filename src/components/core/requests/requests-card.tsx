@@ -1,5 +1,5 @@
 import { ZapIcon } from 'lucide-react'
-import type { RequestCardProps } from '@/types/requests'
+import type { RequestTypeValue } from '@/types/requests'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -11,7 +11,21 @@ import {
 } from '@/components/ui/card'
 import { REQUEST_TYPE } from '@/constants/enums'
 
-export type { RequestCardProps } from '@/types/requests'
+export interface RequestCardProps {
+  id: string
+  title: string
+  description: string
+  requestType: RequestTypeValue
+  tags: Array<string>
+  isOpen: boolean
+  fulfillLabel?: string
+  detailsLabel?: string
+  onFulfillClick?: () => void
+  onDetailsClick?: () => void
+  /** Shown when the viewer is allowed to edit (e.g. request author). */
+  onEditClick?: () => void
+  editLabel?: string
+}
 
 function requestTypeLabel(value: RequestCardProps['requestType']) {
   return REQUEST_TYPE.find((t) => t.value === value)?.label ?? value

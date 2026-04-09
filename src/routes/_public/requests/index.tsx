@@ -55,9 +55,7 @@ function parseCommaList(raw: string | undefined): Array<string> {
 }
 
 function filterValidTagIds(raw: string | undefined): Array<string> {
-  return parseCommaList(raw).filter(
-    (id) => z.string().uuid().safeParse(id).success,
-  )
+  return parseCommaList(raw).filter((id) => z.uuid().safeParse(id).success)
 }
 
 function filterValidRequestTypes(raw: string | undefined): Array<string> {

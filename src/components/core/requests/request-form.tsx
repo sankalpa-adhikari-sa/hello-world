@@ -3,10 +3,9 @@
 import { useForm } from '@tanstack/react-form'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
-import { useEffect } from 'react'
 import { toast } from 'sonner'
 
-import type { RequestCreateFormValues } from '@/types/requests'
+import type { RequestInput } from '@/types/requests'
 import { REQUEST_TYPE } from '@/constants/enums'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -20,14 +19,20 @@ import {
 } from '@/components/ui/field'
 import { RichTextEditor } from '@/components/core/tiptap/rich-text-editor'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
 import {
   createRequest,
-  getRequestById,
   listTagsForRequestsFormQO,
   updateRequest,
 } from '@/sfn/requests'
-import { requestCreateFormSchema } from '@/types/requests'
+import { requestInputSchema } from '@/types/requests'
 import {
   asRichTextContent,
   emptyRichTextDocument,
@@ -35,9 +40,9 @@ import {
 
 const authenticatedRouteApi = getRouteApi('/_authenticated')
 
-const defaultCreateValues: RequestCreateFormValues = {
+const defaultCreateValues: RequestInput = {
   title: '',
-  subtitle: '',
+  subtitle: undefined,
   requestType: REQUEST_TYPE[0].value,
   content: emptyRichTextDocument,
   tagIds: [],
@@ -47,34 +52,68 @@ export interface RequestFormProps {
   mode: 'create' | 'edit'
   /** Required when `mode` is `edit` */
   requestId?: string
+  initialRequest?: Awaited<ReturnType<typeof createRequest>> | null
 }
 
-export function RequestForm({ mode, requestId }: RequestFormProps) {
+function toRequestFormValues(
+  request: NonNullable<RequestFormProps['initialRequest']>,
+): RequestInput {
+  return {
+    title: request.title,
+    subtitle: request.subtitle ?? undefined,
+    requestType: request.requestType ?? REQUEST_TYPE[0].value,
+    content: asRichTextContent(request.content),
+    tagIds: request.tags.map((t) => t.id),
+  }
+}
+
+type RequestFormInnerProps = {
+  mode: 'create' | 'edit'
+  requestId?: string
+  initialValues: RequestInput
+}
+
+function RequestFormInner({
+  mode,
+  requestId,
+  initialValues,
+}: RequestFormInnerProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { currentUser: authBundle } = authenticatedRouteApi.useLoaderData()
-  const sessionUserId = authBundle?.currentUser?.id
 
   const tagsQuery = useQuery(listTagsForRequestsFormQO())
 
-  const requestQuery = useQuery({
-    queryKey: ['request', requestId],
-    queryFn: () => getRequestById({ data: { id: requestId! } }),
-    enabled: mode === 'edit' && Boolean(requestId),
-  })
-
-  const request = requestQuery.data ?? undefined
-  const isOwner = request && sessionUserId === request.createdById
+  const toTextValue = (value: string | null | undefined): string => value ?? ''
+  const toOptionalString = (
+    value: string | null | undefined,
+  ): string | undefined => {
+    if (!value) return undefined
+    const trimmed = value.trim()
+    return trimmed ? trimmed : undefined
+  }
+  const normalizePayload = (value: RequestInput): RequestInput =>
+    requestInputSchema.parse({
+      ...value,
+      subtitle: toOptionalString(value.subtitle),
+      requestType: value.requestType ?? REQUEST_TYPE[0].value,
+      content:
+        value.content &&
+        typeof value.content === 'object' &&
+        !Array.isArray(value.content)
+          ? value.content
+          : emptyRichTextDocument,
+      tagIds: value.tagIds ?? [],
+    })
 
   const createMutation = useMutation({
-    mutationFn: async (value: RequestCreateFormValues) => {
+    mutationFn: async (value: RequestInput) => {
       return createRequest({
         data: {
           title: value.title,
           subtitle: value.subtitle || undefined,
-          requestType: value.requestType,
+          requestType: value.requestType ?? REQUEST_TYPE[0].value,
           content: value.content as Record<string, unknown>,
-          tagIds: value.tagIds.length ? value.tagIds : undefined,
+          tagIds: (value.tagIds ?? []).length ? value.tagIds : undefined,
         },
       })
     },
@@ -93,14 +132,14 @@ export function RequestForm({ mode, requestId }: RequestFormProps) {
   })
 
   const updateMutation = useMutation({
-    mutationFn: async (value: RequestCreateFormValues) => {
+    mutationFn: async (value: RequestInput) => {
       if (!requestId) throw new Error('Missing request id')
       return updateRequest({
         data: {
           id: requestId,
           title: value.title,
           subtitle: value.subtitle || undefined,
-          requestType: value.requestType,
+          requestType: value.requestType ?? REQUEST_TYPE[0].value,
           content: value.content as Record<string, unknown>,
           tagIds: value.tagIds,
         },
@@ -129,57 +168,28 @@ export function RequestForm({ mode, requestId }: RequestFormProps) {
   })
 
   const form = useForm({
-    defaultValues: defaultCreateValues,
-    validators: {
-      onSubmit: requestCreateFormSchema,
-    },
+    defaultValues: initialValues,
     onSubmit: async ({ value }) => {
-      if (mode === 'create') {
-        await createMutation.mutateAsync(value)
-      } else {
-        await updateMutation.mutateAsync(value)
+      try {
+        const parsed = normalizePayload(value)
+        if (mode === 'create') {
+          await createMutation.mutateAsync(parsed)
+        } else {
+          await updateMutation.mutateAsync(parsed)
+        }
+      } catch (error) {
+        toast.error(
+          mode === 'create'
+            ? 'Could not create request'
+            : 'Could not update request',
+          {
+            description:
+              error instanceof Error ? error.message : 'Unknown error',
+          },
+        )
       }
     },
   })
-
-  useEffect(() => {
-    if (mode !== 'edit' || !request) return
-    form.reset({
-      title: request.title,
-      subtitle: request.subtitle ?? '',
-      requestType: request.requestType ?? REQUEST_TYPE[0].value,
-      content: asRichTextContent(request.content),
-      tagIds: request.tags.map((t) => t.id),
-    })
-  }, [mode, request?.id, request?.updatedAt, form])
-
-  if (mode === 'edit') {
-    if (!requestId) {
-      return (
-        <p className="text-muted-foreground text-sm">Missing request id.</p>
-      )
-    }
-    if (requestQuery.isLoading) {
-      return (
-        <div className="flex items-center gap-2 p-6 text-sm text-muted-foreground">
-          <Spinner />
-          Loading request…
-        </div>
-      )
-    }
-    if (!request) {
-      return (
-        <p className="text-muted-foreground text-sm p-6">Request not found.</p>
-      )
-    }
-    if (!isOwner) {
-      return (
-        <p className="text-muted-foreground text-sm p-6">
-          You can only edit requests you created.
-        </p>
-      )
-    }
-  }
 
   const submitting =
     form.state.isSubmitting ||
@@ -207,7 +217,7 @@ export function RequestForm({ mode, requestId }: RequestFormProps) {
                 <Input
                   id={field.name}
                   name={field.name}
-                  value={field.state.value}
+                  value={toTextValue(field.state.value)}
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
                   aria-invalid={isInvalid}
@@ -230,7 +240,7 @@ export function RequestForm({ mode, requestId }: RequestFormProps) {
                 <Input
                   id={field.name}
                   name={field.name}
-                  value={field.state.value}
+                  value={toTextValue(field.state.value)}
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
                   aria-invalid={isInvalid}
@@ -250,21 +260,28 @@ export function RequestForm({ mode, requestId }: RequestFormProps) {
             return (
               <Field data-invalid={isInvalid}>
                 <FieldLabel htmlFor={field.name}>Request type</FieldLabel>
-                <select
-                  id={field.name}
-                  name={field.name}
-                  className="border-input bg-input/20 dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/30 h-9 w-full rounded-md border px-2 py-1 text-sm outline-none focus-visible:ring-2"
+                <Select
                   value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  aria-invalid={isInvalid}
+                  onValueChange={(value) =>
+                    field.handleChange(value ?? REQUEST_TYPE[0].value)
+                  }
                 >
-                  {REQUEST_TYPE.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger
+                    id={field.name}
+                    name={field.name}
+                    onBlur={field.handleBlur}
+                    aria-invalid={isInvalid}
+                  >
+                    <SelectValue placeholder="Select request type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {REQUEST_TYPE.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 {isInvalid && <FieldError errors={field.state.meta.errors} />}
               </Field>
             )
@@ -314,11 +331,13 @@ export function RequestForm({ mode, requestId }: RequestFormProps) {
                         className="flex cursor-pointer items-center gap-2 text-sm"
                       >
                         <Checkbox
-                          checked={field.state.value.includes(t.id)}
+                          checked={(field.state.value ?? []).includes(t.id)}
                           onCheckedChange={(checked) => {
                             const next = checked
-                              ? [...field.state.value, t.id]
-                              : field.state.value.filter((id) => id !== t.id)
+                              ? [...(field.state.value ?? []), t.id]
+                              : (field.state.value ?? []).filter(
+                                  (id) => id !== t.id,
+                                )
                             field.handleChange(next)
                           }}
                         />
@@ -354,11 +373,66 @@ export function RequestForm({ mode, requestId }: RequestFormProps) {
           type="button"
           variant="outline"
           className="cursor-pointer"
-          onClick={() => navigate({ to: '/requests' })}
+          onClick={() =>
+            navigate({
+              to: '/requests',
+              search: {
+                page: 1,
+                pageSize: 12,
+                q: undefined,
+                sort: 'desc',
+                tags: undefined,
+                types: undefined,
+              },
+            })
+          }
         >
           Cancel
         </Button>
       </div>
     </form>
   )
+}
+
+export function RequestForm({
+  mode,
+  requestId,
+  initialRequest,
+}: RequestFormProps) {
+  const { currentUser: authBundle } = authenticatedRouteApi.useLoaderData()
+  const sessionUserId = authBundle?.currentUser?.id
+  const isAddMode = mode === 'create'
+
+  if (!isAddMode) {
+    if (!requestId) {
+      return (
+        <p className="text-muted-foreground text-sm">Missing request id.</p>
+      )
+    }
+    const request = initialRequest ?? undefined
+    if (!request) {
+      return (
+        <p className="text-muted-foreground text-sm p-6">Request not found.</p>
+      )
+    }
+    const isOwner = Boolean(
+      sessionUserId && request.createdById === sessionUserId,
+    )
+    if (!isOwner) {
+      return (
+        <p className="text-muted-foreground text-sm p-6">
+          You can only edit requests you created.
+        </p>
+      )
+    }
+    return (
+      <RequestFormInner
+        mode={mode}
+        requestId={requestId}
+        initialValues={toRequestFormValues(request)}
+      />
+    )
+  }
+
+  return <RequestFormInner mode={mode} initialValues={defaultCreateValues} />
 }

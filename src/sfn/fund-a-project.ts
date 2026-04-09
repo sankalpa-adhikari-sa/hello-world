@@ -16,88 +16,58 @@ import { z } from 'zod'
 
 import { getCurrentUser } from './users'
 
-import type { FundProjectLevel, FundmeCardProps } from '@/types/fund-a-project'
-import {
-  FUND_PROJECT_LEVEL_LABEL,
-  extractLegacyFundAProjectCoverImageUrl,
-  fundProjectLevelSchema,
-} from '@/types/fund-a-project'
+import type { FundAProjectOutput } from '@/types/fund-a-project'
 import { db } from '@/db'
 import {
   fundAProject,
   fundAProjectTags,
 } from '@/db/schema/fund_a_project.schema'
 import { tags } from '@/db/schema/tags.schema'
+import {
+  fundAProjectInputSchema,
+  fundAProjectOutputSchema,
+} from '@/types/fund-a-project'
 
 type FundRow = typeof fundAProject.$inferSelect
+
 type FundWithJoins = FundRow & {
   createdBy: {
     id: string
     name: string
+    email: string
+    image: string | null
     profile: {
       displayName: string | null
-      studentSchoolName: string | null
-      studentDepartment: string | null
+      isStudent: boolean | null
       studentMajor: string | null
+      studentGraduationYear: number | null
     } | null
   }
-  fundAProjectTags: Array<{ tag: { id: string; name: string } }>
+  fundAProjectTags: Array<{
+    tag: { id: string; name: string; isPublic: boolean | null }
+  }>
 }
 
-export type PublicFundAProject = FundRow & {
-  tags: Array<{ id: string; name: string }>
-  fundedPercent: number
-  /** Ready for `FundmeCard`: badge from `projectLevel`, name/dept from creator profile. */
-  card: FundmeCardProps & { id: string }
-}
-
-function cardAffiliationLine(
-  profile: FundWithJoins['createdBy']['profile'],
-): string {
-  if (!profile) return ''
-  const parts = [
-    profile.studentSchoolName?.trim(),
-    profile.studentDepartment?.trim(),
-    profile.studentMajor?.trim(),
-  ].filter(Boolean)
-  return parts.join(' · ')
-}
-
-function fundedPercent(funded: number, target: number): number {
-  if (target <= 0) return 0
-  return Math.min(100, Math.round((funded / target) * 100))
-}
-
-function toPublicFundAProject(row: FundWithJoins): PublicFundAProject {
+function toFundAProjectOutput(row: FundWithJoins): FundAProjectOutput {
   const { fundAProjectTags: junction, createdBy, ...base } = row
-  const tagList = junction.map((j) => ({ id: j.tag.id, name: j.tag.name }))
-  const c = base.content as Record<string, unknown>
-  const pct = fundedPercent(base.fundedAmount, base.targetAmount)
-  const level: FundProjectLevel = base.projectLevel
-  const legacyImage =
-    base.coverImageUrl?.trim() || extractLegacyFundAProjectCoverImageUrl(c)
-  const trimmedAlt = base.coverImageAlt?.trim()
-  const imageAlt = trimmedAlt || (legacyImage ? base.title : undefined)
-
-  const card: FundmeCardProps & { id: string } = {
-    id: base.id,
-    badge: FUND_PROJECT_LEVEL_LABEL[level],
-    name: createdBy.profile?.displayName?.trim() || createdBy.name || 'Creator',
-    dept: cardAffiliationLine(createdBy.profile),
-    title: base.title,
-    progress: pct,
-    target: base.targetAmount,
-    imageUrl: legacyImage || undefined,
-    imageAlt,
-    imagePlaceholderText: tagList[0]?.name,
-  }
-
-  return {
+  const tagList = junction.map((j) => ({
+    id: j.tag.id,
+    name: j.tag.name,
+    isPublic: j.tag.isPublic ?? false,
+  }))
+  return fundAProjectOutputSchema.parse({
     ...base,
     tags: tagList,
-    fundedPercent: pct,
-    card,
-  }
+    createdBy: {
+      name: createdBy.name,
+      email: createdBy.email,
+      image: createdBy.image,
+      displayName: createdBy.profile?.displayName ?? null,
+      isStudent: createdBy.profile?.isStudent ?? false,
+      studentMajor: createdBy.profile?.studentMajor ?? null,
+      studentGraduationYear: createdBy.profile?.studentGraduationYear ?? null,
+    },
+  })
 }
 
 async function assertAllTagIdsExist(tagIds: Array<string>) {
@@ -114,7 +84,7 @@ async function assertAllTagIdsExist(tagIds: Array<string>) {
 
 async function loadFundAProjectWithJoins(
   id: string,
-): Promise<PublicFundAProject | null> {
+): Promise<FundAProjectOutput | null> {
   const row = await db.query.fundAProject.findFirst({
     where: eq(fundAProject.id, id),
     with: {
@@ -122,11 +92,11 @@ async function loadFundAProjectWithJoins(
       fundAProjectTags: { with: { tag: true } },
     },
   })
-  return row ? toPublicFundAProject(row) : null
+  return row ? toFundAProjectOutput(row) : null
 }
 
 export const getFundAProjectByIdInputSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
 })
 
 /**
@@ -151,10 +121,13 @@ export const getFundAProjectsInputSchema = z.object({
     .object({
       query: z.string().optional(),
       sort: z.enum(['newest', 'oldest', 'urgent']).optional(),
-      tagIds: z.array(z.string().uuid()).max(50).optional(),
+      tagIds: z.array(z.uuid()).max(50).optional(),
       /** When true, only rows with `isFeatured === true`. */
       featuredOnly: z.boolean().optional(),
-      projectLevels: z.array(fundProjectLevelSchema).max(10).optional(),
+      projectLevels: z
+        .array(fundAProjectInputSchema.shape.projectLevel)
+        .max(10)
+        .optional(),
     })
     .optional(),
 })
@@ -162,7 +135,7 @@ export const getFundAProjectsInputSchema = z.object({
 export type GetFundAProjectsInput = z.infer<typeof getFundAProjectsInputSchema>
 
 export type GetFundAProjectsResult = {
-  items: Array<PublicFundAProject>
+  items: Array<FundAProjectOutput>
   total: number
   page: number
   pageSize: number
@@ -233,7 +206,12 @@ export const getFundAProjects = createServerFn({ method: 'GET' })
       filters.push(eq(fundAProject.isFeatured, true))
     }
     if (projectLevels?.length) {
-      filters.push(inArray(fundAProject.projectLevel, projectLevels))
+      filters.push(
+        inArray(
+          fundAProject.projectLevel,
+          projectLevels as Array<'highschool' | 'undergrad' | 'grad'>,
+        ),
+      )
     }
     if (tagIds?.length) {
       filters.push(
@@ -282,7 +260,7 @@ export const getFundAProjects = createServerFn({ method: 'GET' })
     })
 
     return {
-      items: rows.map(toPublicFundAProject),
+      items: rows.map(toFundAProjectOutput),
       total,
       page,
       pageSize: limit,
@@ -304,11 +282,11 @@ export const createFundAProjectSchema = z.object({
   subtitle: z.string().nullish(),
   targetAmount: z.number().int().min(1),
   fundedAmount: z.number().int().min(0),
-  projectLevel: fundProjectLevelSchema.default('undergrad'),
+  projectLevel: fundAProjectInputSchema.shape.projectLevel.default('undergrad'),
   coverImageUrl: z.string().nullish(),
   coverImageAlt: z.string().nullish(),
   content: z.any().optional().default({}),
-  tagIds: z.array(z.string().uuid()).max(50).optional(),
+  tagIds: z.array(z.uuid()).max(50).optional(),
 })
 
 export type CreateFundAProjectInput = z.infer<typeof createFundAProjectSchema>
@@ -330,7 +308,10 @@ export const createFundAProject = createServerFn({ method: 'POST' })
           subtitle: data.subtitle ?? null,
           targetAmount: data.targetAmount,
           fundedAmount: data.fundedAmount,
-          projectLevel: data.projectLevel,
+          projectLevel: data.projectLevel as
+            | 'highschool'
+            | 'undergrad'
+            | 'grad',
           coverImageUrl: data.coverImageUrl?.trim() || null,
           coverImageAlt: data.coverImageAlt?.trim() || null,
           content: data.content ?? {},
@@ -355,22 +336,22 @@ export const createFundAProject = createServerFn({ method: 'POST' })
           fundAProjectTags: { with: { tag: true } },
         },
       })
-      return full ? toPublicFundAProject(full) : null
+      return full ? toFundAProjectOutput(full) : null
     })
   })
 
 export const updateFundAProjectSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   title: z.string().min(1).optional(),
   subtitle: z.string().nullish().optional(),
   targetAmount: z.number().int().min(1).optional(),
   fundedAmount: z.number().int().min(0).optional(),
-  projectLevel: fundProjectLevelSchema.optional(),
+  projectLevel: fundAProjectInputSchema.shape.projectLevel.optional(),
   coverImageUrl: z.string().nullish().optional(),
   coverImageAlt: z.string().nullish().optional(),
   content: z.any().optional(),
   /** When set, replaces all tag links (use `[]` to clear). */
-  tagIds: z.array(z.string().uuid()).max(50).optional(),
+  tagIds: z.array(z.uuid()).max(50).optional(),
 })
 
 export type UpdateFundAProjectInput = z.infer<typeof updateFundAProjectSchema>
@@ -398,7 +379,7 @@ export const updateFundAProject = createServerFn({ method: 'POST' })
       subtitle: string | null
       targetAmount: number
       fundedAmount: number
-      projectLevel: FundProjectLevel
+      projectLevel: 'highschool' | 'undergrad' | 'grad'
       coverImageUrl: string | null
       coverImageAlt: string | null
       content: Record<string, unknown>
@@ -408,7 +389,11 @@ export const updateFundAProject = createServerFn({ method: 'POST' })
     if (data.subtitle !== undefined) patch.subtitle = data.subtitle ?? null
     if (data.targetAmount !== undefined) patch.targetAmount = data.targetAmount
     if (data.fundedAmount !== undefined) patch.fundedAmount = data.fundedAmount
-    if (data.projectLevel !== undefined) patch.projectLevel = data.projectLevel
+    if (data.projectLevel !== undefined)
+      patch.projectLevel = data.projectLevel as
+        | 'highschool'
+        | 'undergrad'
+        | 'grad'
     if (data.coverImageUrl !== undefined) {
       patch.coverImageUrl = data.coverImageUrl?.trim() || null
     }

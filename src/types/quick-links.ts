@@ -9,8 +9,8 @@ export const baseQuickLinkSchema = z.object({
 export const quickLinkInputSchema = baseQuickLinkSchema
 
 export const quickLinkOutputSchema = baseQuickLinkSchema.extend({
-  id: z.string().uuid(),
-  createdById: z.string().uuid(),
+  id: z.uuid(),
+  createdById: z.uuid(),
   createdAt: z.union([
     z.date(),
     z.string().transform((date) => new TZDate(date)),
