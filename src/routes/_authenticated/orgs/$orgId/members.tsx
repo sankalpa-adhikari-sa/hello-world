@@ -1,9 +1,18 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { createFileRoute, getRouteApi } from '@tanstack/react-router'
+import { OrganizationMembersPanel } from '@/components/core/organization/organization-members-panel'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import {
   ListMembersSchema,
   listOrganizationMembersQO,
-} from '@/sfn/organization'
+} from '@/sfn/organization/members'
+
+const authenticatedRouteApi = getRouteApi('/_authenticated')
 
 export const Route = createFileRoute('/_authenticated/orgs/$orgId/members')({
   validateSearch: ListMembersSchema.omit({ organizationId: true }),
@@ -44,20 +53,29 @@ export const Route = createFileRoute('/_authenticated/orgs/$orgId/members')({
 function RouteComponent() {
   const params = Route.useParams()
   const search = Route.useSearch()
+  const { currentUser } = authenticatedRouteApi.useLoaderData()
 
-  const membersQuery = useSuspenseQuery(
-    listOrganizationMembersQO({
-      ...search,
-      organizationId: params.orgId,
-    }),
-  )
-
-  const members = membersQuery.data
+  const listParams = {
+    ...search,
+    organizationId: params.orgId,
+  }
 
   return (
-    <div>
-      <h2>Members for Org: {params.orgId}</h2>
-      <pre>{JSON.stringify(members, null, 2)}</pre>
+    <div className="mx-auto max-w-3xl px-4 py-8">
+      <Card>
+        <CardHeader>
+          <CardTitle>Members</CardTitle>
+          <CardDescription>
+            Add or remove members, change roles, or leave the organization.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <OrganizationMembersPanel
+            listParams={listParams}
+            currentUserId={currentUser.currentUser.id}
+          />
+        </CardContent>
+      </Card>
     </div>
   )
 }

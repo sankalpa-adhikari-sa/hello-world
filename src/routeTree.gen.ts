@@ -16,8 +16,6 @@ import { Route as PublicEventsRouteImport } from './routes/_public/events'
 import { Route as PublicDataRouteImport } from './routes/_public/data'
 import { Route as authSignupRouteImport } from './routes/(auth)/signup'
 import { Route as authLoginRouteImport } from './routes/(auth)/login'
-import { Route as PublicRequestsRouteRouteImport } from './routes/_public/requests/route'
-import { Route as PublicFundAProjectRouteRouteImport } from './routes/_public/fund-a-project/route'
 import { Route as PublicRequestsIndexRouteImport } from './routes/_public/requests/index'
 import { Route as PublicFundAProjectIndexRouteImport } from './routes/_public/fund-a-project/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -75,25 +73,15 @@ const authLoginRoute = authLoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PublicRequestsRouteRoute = PublicRequestsRouteRouteImport.update({
-  id: '/requests',
-  path: '/requests',
-  getParentRoute: () => PublicRoute,
-} as any)
-const PublicFundAProjectRouteRoute = PublicFundAProjectRouteRouteImport.update({
-  id: '/fund-a-project',
-  path: '/fund-a-project',
-  getParentRoute: () => PublicRoute,
-} as any)
 const PublicRequestsIndexRoute = PublicRequestsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => PublicRequestsRouteRoute,
+  id: '/requests/',
+  path: '/requests/',
+  getParentRoute: () => PublicRoute,
 } as any)
 const PublicFundAProjectIndexRoute = PublicFundAProjectIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => PublicFundAProjectRouteRoute,
+  id: '/fund-a-project/',
+  path: '/fund-a-project/',
+  getParentRoute: () => PublicRoute,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
@@ -101,14 +89,14 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const PublicRequestsIdRoute = PublicRequestsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => PublicRequestsRouteRoute,
+  id: '/requests/$id',
+  path: '/requests/$id',
+  getParentRoute: () => PublicRoute,
 } as any)
 const PublicFundAProjectIdRoute = PublicFundAProjectIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => PublicFundAProjectRouteRoute,
+  id: '/fund-a-project/$id',
+  path: '/fund-a-project/$id',
+  getParentRoute: () => PublicRoute,
 } as any)
 const PublicEventsIdRoute = PublicEventsIdRouteImport.update({
   id: '/$id',
@@ -217,8 +205,6 @@ const AuthenticatedUUIdFundAProjectFundAProjectIdEditRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/fund-a-project': typeof PublicFundAProjectRouteRouteWithChildren
-  '/requests': typeof PublicRequestsRouteRouteWithChildren
   '/login': typeof authLoginRoute
   '/signup': typeof authSignupRoute
   '/data': typeof PublicDataRoute
@@ -229,8 +215,8 @@ export interface FileRoutesByFullPath {
   '/fund-a-project/$id': typeof PublicFundAProjectIdRoute
   '/requests/$id': typeof PublicRequestsIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/fund-a-project/': typeof PublicFundAProjectIndexRoute
-  '/requests/': typeof PublicRequestsIndexRoute
+  '/fund-a-project': typeof PublicFundAProjectIndexRoute
+  '/requests': typeof PublicRequestsIndexRoute
   '/orgs/$orgId/dashboard': typeof AuthenticatedOrgsOrgIdDashboardRoute
   '/orgs/$orgId/events': typeof AuthenticatedOrgsOrgIdEventsRoute
   '/orgs/$orgId/members': typeof AuthenticatedOrgsOrgIdMembersRoute
@@ -281,8 +267,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/_public': typeof PublicRouteWithChildren
-  '/_public/fund-a-project': typeof PublicFundAProjectRouteRouteWithChildren
-  '/_public/requests': typeof PublicRequestsRouteRouteWithChildren
   '/(auth)/login': typeof authLoginRoute
   '/(auth)/signup': typeof authSignupRoute
   '/_public/data': typeof PublicDataRoute
@@ -315,8 +299,6 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/fund-a-project'
-    | '/requests'
     | '/login'
     | '/signup'
     | '/data'
@@ -327,8 +309,8 @@ export interface FileRouteTypes {
     | '/fund-a-project/$id'
     | '/requests/$id'
     | '/api/auth/$'
-    | '/fund-a-project/'
-    | '/requests/'
+    | '/fund-a-project'
+    | '/requests'
     | '/orgs/$orgId/dashboard'
     | '/orgs/$orgId/events'
     | '/orgs/$orgId/members'
@@ -378,8 +360,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_authenticated'
     | '/_public'
-    | '/_public/fund-a-project'
-    | '/_public/requests'
     | '/(auth)/login'
     | '/(auth)/signup'
     | '/_public/data'
@@ -469,33 +449,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof authLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_public/requests': {
-      id: '/_public/requests'
-      path: '/requests'
-      fullPath: '/requests'
-      preLoaderRoute: typeof PublicRequestsRouteRouteImport
-      parentRoute: typeof PublicRoute
-    }
-    '/_public/fund-a-project': {
-      id: '/_public/fund-a-project'
-      path: '/fund-a-project'
-      fullPath: '/fund-a-project'
-      preLoaderRoute: typeof PublicFundAProjectRouteRouteImport
-      parentRoute: typeof PublicRoute
-    }
     '/_public/requests/': {
       id: '/_public/requests/'
-      path: '/'
-      fullPath: '/requests/'
+      path: '/requests'
+      fullPath: '/requests'
       preLoaderRoute: typeof PublicRequestsIndexRouteImport
-      parentRoute: typeof PublicRequestsRouteRoute
+      parentRoute: typeof PublicRoute
     }
     '/_public/fund-a-project/': {
       id: '/_public/fund-a-project/'
-      path: '/'
-      fullPath: '/fund-a-project/'
+      path: '/fund-a-project'
+      fullPath: '/fund-a-project'
       preLoaderRoute: typeof PublicFundAProjectIndexRouteImport
-      parentRoute: typeof PublicFundAProjectRouteRoute
+      parentRoute: typeof PublicRoute
     }
     '/api/auth/$': {
       id: '/api/auth/$'
@@ -506,17 +472,17 @@ declare module '@tanstack/react-router' {
     }
     '/_public/requests/$id': {
       id: '/_public/requests/$id'
-      path: '/$id'
+      path: '/requests/$id'
       fullPath: '/requests/$id'
       preLoaderRoute: typeof PublicRequestsIdRouteImport
-      parentRoute: typeof PublicRequestsRouteRoute
+      parentRoute: typeof PublicRoute
     }
     '/_public/fund-a-project/$id': {
       id: '/_public/fund-a-project/$id'
-      path: '/$id'
+      path: '/fund-a-project/$id'
       fullPath: '/fund-a-project/$id'
       preLoaderRoute: typeof PublicFundAProjectIdRouteImport
-      parentRoute: typeof PublicFundAProjectRouteRoute
+      parentRoute: typeof PublicRoute
     }
     '/_public/events/$id': {
       id: '/_public/events/$id'
@@ -705,35 +671,6 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
   AuthenticatedRouteChildren,
 )
 
-interface PublicFundAProjectRouteRouteChildren {
-  PublicFundAProjectIdRoute: typeof PublicFundAProjectIdRoute
-  PublicFundAProjectIndexRoute: typeof PublicFundAProjectIndexRoute
-}
-
-const PublicFundAProjectRouteRouteChildren: PublicFundAProjectRouteRouteChildren =
-  {
-    PublicFundAProjectIdRoute: PublicFundAProjectIdRoute,
-    PublicFundAProjectIndexRoute: PublicFundAProjectIndexRoute,
-  }
-
-const PublicFundAProjectRouteRouteWithChildren =
-  PublicFundAProjectRouteRoute._addFileChildren(
-    PublicFundAProjectRouteRouteChildren,
-  )
-
-interface PublicRequestsRouteRouteChildren {
-  PublicRequestsIdRoute: typeof PublicRequestsIdRoute
-  PublicRequestsIndexRoute: typeof PublicRequestsIndexRoute
-}
-
-const PublicRequestsRouteRouteChildren: PublicRequestsRouteRouteChildren = {
-  PublicRequestsIdRoute: PublicRequestsIdRoute,
-  PublicRequestsIndexRoute: PublicRequestsIndexRoute,
-}
-
-const PublicRequestsRouteRouteWithChildren =
-  PublicRequestsRouteRoute._addFileChildren(PublicRequestsRouteRouteChildren)
-
 interface PublicEventsRouteChildren {
   PublicEventsIdRoute: typeof PublicEventsIdRoute
 }
@@ -747,19 +684,23 @@ const PublicEventsRouteWithChildren = PublicEventsRoute._addFileChildren(
 )
 
 interface PublicRouteChildren {
-  PublicFundAProjectRouteRoute: typeof PublicFundAProjectRouteRouteWithChildren
-  PublicRequestsRouteRoute: typeof PublicRequestsRouteRouteWithChildren
   PublicDataRoute: typeof PublicDataRoute
   PublicEventsRoute: typeof PublicEventsRouteWithChildren
   PublicIndexRoute: typeof PublicIndexRoute
+  PublicFundAProjectIdRoute: typeof PublicFundAProjectIdRoute
+  PublicRequestsIdRoute: typeof PublicRequestsIdRoute
+  PublicFundAProjectIndexRoute: typeof PublicFundAProjectIndexRoute
+  PublicRequestsIndexRoute: typeof PublicRequestsIndexRoute
 }
 
 const PublicRouteChildren: PublicRouteChildren = {
-  PublicFundAProjectRouteRoute: PublicFundAProjectRouteRouteWithChildren,
-  PublicRequestsRouteRoute: PublicRequestsRouteRouteWithChildren,
   PublicDataRoute: PublicDataRoute,
   PublicEventsRoute: PublicEventsRouteWithChildren,
   PublicIndexRoute: PublicIndexRoute,
+  PublicFundAProjectIdRoute: PublicFundAProjectIdRoute,
+  PublicRequestsIdRoute: PublicRequestsIdRoute,
+  PublicFundAProjectIndexRoute: PublicFundAProjectIndexRoute,
+  PublicRequestsIndexRoute: PublicRequestsIndexRoute,
 }
 
 const PublicRouteWithChildren =

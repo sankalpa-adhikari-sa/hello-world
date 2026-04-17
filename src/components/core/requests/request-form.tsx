@@ -30,6 +30,7 @@ import { Spinner } from '@/components/ui/spinner'
 import {
   createRequest,
   listTagsForRequestsFormQO,
+  requestsPublicListDefaultSearch,
   updateRequest,
 } from '@/sfn/requests'
 import { requestInputSchema } from '@/types/requests'
@@ -376,14 +377,7 @@ function RequestFormInner({
           onClick={() =>
             navigate({
               to: '/requests',
-              search: {
-                page: 1,
-                pageSize: 12,
-                q: undefined,
-                sort: 'desc',
-                tags: undefined,
-                types: undefined,
-              },
+              search: requestsPublicListDefaultSearch,
             })
           }
         >

@@ -18,10 +18,7 @@ import {
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
-import {
-  createOrganization,
-  setActiveOrganizationById,
-} from '@/sfn/organization'
+import { createOrganization } from '@/sfn/organization'
 import { authClient } from '@/lib/auth/auth-client'
 import { organizationFormSchema } from '@/types/organization-form'
 

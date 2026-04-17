@@ -142,6 +142,9 @@ export type RequestsPublicListSearch = z.infer<
   typeof requestsPublicListSearchSchema
 >
 
+export const requestsPublicListDefaultSearch: RequestsPublicListSearch =
+  requestsPublicListSearchSchema.parse({})
+
 export const getRequests = createServerFn({ method: 'GET' })
   .inputValidator((data: unknown) =>
     getRequestsInputSchema.parse(

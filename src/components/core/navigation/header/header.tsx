@@ -39,6 +39,8 @@ import {
   ItemMedia,
   ItemTitle,
 } from '@/components/ui/item'
+import { fundAPublicListDefaultSearch } from '@/types/fund-a-project'
+import { requestsPublicListDefaultSearch } from '@/sfn/requests'
 import { getOptionalCurrentUser } from '@/sfn/users'
 import { ModeToggle } from '@/components/mode-toggle'
 
@@ -62,6 +64,7 @@ const TopNavHeader = () => {
       <div className="inline-flex gap-4 uppercase">
         <Link
           to="/fund-a-project"
+          search={fundAPublicListDefaultSearch}
           className={navLinkStyles}
           activeProps={activeStyles}
         >
@@ -69,6 +72,7 @@ const TopNavHeader = () => {
         </Link>
         <Link
           to="/requests"
+          search={requestsPublicListDefaultSearch}
           className={navLinkStyles}
           activeProps={activeStyles}
         >

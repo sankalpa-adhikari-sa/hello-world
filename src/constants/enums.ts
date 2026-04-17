@@ -1,3 +1,5 @@
+import z from 'zod'
+
 export const REQUEST_TYPE = [
   { value: 'hardware', label: 'Hardware' },
   { value: 'mentorship', label: 'Mentorship' },
@@ -50,3 +52,5 @@ export const FUND_PROJECT_LEVEL = [
   { value: 'undergrad', label: 'Undergrad' },
   { value: 'grad', label: 'Grad' },
 ]
+
+export const RoleEnum = z.enum(['member', 'owner', 'admin'])

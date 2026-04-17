@@ -1,12 +1,11 @@
 import { createServerFn } from '@tanstack/react-start'
-import { queryOptions } from '@tanstack/react-query'
+import { keepPreviousData, queryOptions } from '@tanstack/react-query'
 import {
   and,
   asc,
   count,
   desc,
   eq,
-  exists,
   ilike,
   inArray,
   or,
@@ -16,16 +15,25 @@ import { z } from 'zod'
 
 import { getCurrentUser } from './users'
 
-import type { FundAProjectOutput } from '@/types/fund-a-project'
+import type {
+  FundAProjectOutput,
+  FundAPublicListSearch,
+  FundProjectLevelValue,
+  GetFundAProjectsInput,
+  GetFundAProjectsResult,
+} from '@/types/fund-a-project'
 import { db } from '@/db'
 import {
   fundAProject,
   fundAProjectTags,
 } from '@/db/schema/fund_a_project.schema'
-import { tags } from '@/db/schema/tags.schema'
+import { assertAllTagIdsExist } from '@/sfn/tags'
 import {
   fundAProjectInputSchema,
   fundAProjectOutputSchema,
+  getFundAProjectByIdInputSchema,
+  getFundAProjectsInputSchema,
+  updateFundAProjectInputSchema,
 } from '@/types/fund-a-project'
 
 type FundRow = typeof fundAProject.$inferSelect
@@ -70,17 +78,7 @@ function toFundAProjectOutput(row: FundWithJoins): FundAProjectOutput {
   })
 }
 
-async function assertAllTagIdsExist(tagIds: Array<string>) {
-  if (tagIds.length === 0) return
-  const unique = [...new Set(tagIds)]
-  const rows = await db
-    .select({ id: tags.id })
-    .from(tags)
-    .where(inArray(tags.id, unique))
-  if (rows.length !== unique.length) {
-    throw new Error('One or more tag IDs are invalid')
-  }
-}
+
 
 async function loadFundAProjectWithJoins(
   id: string,
@@ -94,10 +92,6 @@ async function loadFundAProjectWithJoins(
   })
   return row ? toFundAProjectOutput(row) : null
 }
-
-export const getFundAProjectByIdInputSchema = z.object({
-  id: z.uuid(),
-})
 
 /**
  * Loads one fund-a-project row with tags, creator, and `card` props for the listing UI.
@@ -113,61 +107,69 @@ export const getFundAProjectByIdQO = (id: string) =>
     queryFn: () => getFundAProjectById({ data: { id } }),
   })
 
-export const getFundAProjectsInputSchema = z.object({
-  /** 1-based page index */
-  page: z.number().min(1).default(1),
-  limit: z.number().min(1).max(50).default(12),
-  searchParam: z
-    .object({
-      query: z.string().optional(),
-      sort: z.enum(['newest', 'oldest', 'urgent']).optional(),
-      tagIds: z.array(z.uuid()).max(50).optional(),
-      /** When true, only rows with `isFeatured === true`. */
-      featuredOnly: z.boolean().optional(),
-      projectLevels: z
-        .array(fundAProjectInputSchema.shape.projectLevel)
-        .max(10)
-        .optional(),
-    })
-    .optional(),
-})
+const PROJECT_LEVEL_SET = new Set<FundProjectLevelValue>([
+  'highschool',
+  'undergrad',
+  'grad',
+])
 
-export type GetFundAProjectsInput = z.infer<typeof getFundAProjectsInputSchema>
-
-export type GetFundAProjectsResult = {
-  items: Array<FundAProjectOutput>
-  total: number
-  page: number
-  pageSize: number
+function parseCommaList(raw: string | undefined): Array<string> {
+  if (!raw?.trim()) return []
+  return raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
 }
 
-/** URL search params for `/_public/fund-a-project` */
-export const fundAPublicListSearchSchema = z.object({
-  page: z.coerce.number().int().min(1).catch(1),
-  pageSize: z.coerce.number().int().min(1).max(50).catch(12),
-  q: z
-    .string()
-    .optional()
-    .transform((s) => (s === '' || s === undefined ? undefined : s)),
-  sort: z.enum(['newest', 'oldest', 'urgent']).catch('newest'),
-  tags: z
-    .string()
-    .optional()
-    .transform((s) => (s === '' || s === undefined ? undefined : s)),
-  levels: z
-    .string()
-    .optional()
-    .transform((s) => (s === '' || s === undefined ? undefined : s)),
-  featured: z
-    .union([z.boolean(), z.string()])
-    .optional()
-    .transform((s) => {
-      if (s === true || s === '1' || s === 'true') return true
-      return undefined
-    }),
-})
+export function parseFundAPublicLevelsFromSearch(
+  search: FundAPublicListSearch,
+): Array<FundProjectLevelValue> {
+  const rawLevels = parseCommaList(search.levels)
+  return rawLevels.filter((l) =>
+    PROJECT_LEVEL_SET.has(l as FundProjectLevelValue),
+  ) as Array<FundProjectLevelValue>
+}
 
-export type FundAPublicListSearch = z.infer<typeof fundAPublicListSearchSchema>
+export function parseFundAPublicTagIdsFromSearch(
+  search: FundAPublicListSearch,
+): Array<string> {
+  return parseCommaList(search.tags).filter(
+    (id) => z.uuid().safeParse(id).success,
+  )
+}
+
+export function fundAPublicListHasActiveFilters(
+  search: FundAPublicListSearch,
+): boolean {
+  if ((search.q ?? '').trim()) return true
+  if (search.sort !== 'newest') return true
+  if (search.featured === true) return true
+  if (parseFundAPublicTagIdsFromSearch(search).length > 0) return true
+  if (parseFundAPublicLevelsFromSearch(search).length > 0) return true
+  return false
+}
+
+/**
+ * Maps validated public list URL search to `getFundAProjects` input (pagination + filters).
+ */
+export function fundAPublicSearchToListInput(
+  search: FundAPublicListSearch,
+): GetFundAProjectsInput {
+  const tagIds = parseFundAPublicTagIdsFromSearch(search)
+  const projectLevels = parseFundAPublicLevelsFromSearch(search)
+
+  return {
+    page: search.page,
+    limit: search.pageSize,
+    searchParam: {
+      query: search.q,
+      sort: search.sort,
+      tagIds: tagIds.length ? tagIds : undefined,
+      projectLevels: projectLevels.length ? projectLevels : undefined,
+      featuredOnly: search.featured === true ? true : undefined,
+    },
+  }
+}
 
 /** Lowest funded ratio first (then newest as tie-breaker). */
 const urgencyOrderSql = sql`CASE WHEN ${fundAProject.targetAmount} > 0 THEN (${fundAProject.fundedAmount}::numeric / NULLIF(${fundAProject.targetAmount}, 0)) ELSE 1 END`
@@ -214,19 +216,11 @@ export const getFundAProjects = createServerFn({ method: 'GET' })
       )
     }
     if (tagIds?.length) {
-      filters.push(
-        exists(
-          db
-            .select()
-            .from(fundAProjectTags)
-            .where(
-              and(
-                eq(fundAProjectTags.fundAProjectId, fundAProject.id),
-                inArray(fundAProjectTags.tagId, tagIds),
-              ),
-            ),
-        ),
-      )
+      const projectsWithAnyTag = db
+        .select({ id: fundAProjectTags.fundAProjectId })
+        .from(fundAProjectTags)
+        .where(inArray(fundAProjectTags.tagId, tagIds))
+      filters.push(inArray(fundAProject.id, projectsWithAnyTag))
     }
 
     const whereClause = filters.length ? and(...filters) : undefined
@@ -274,28 +268,15 @@ export const getFundAProjectsQO = (
   return queryOptions({
     queryKey: ['fund-a-projects', parsed],
     queryFn: () => getFundAProjects({ data: parsed }),
+    placeholderData: keepPreviousData,
   })
 }
-
-export const createFundAProjectSchema = z.object({
-  title: z.string().min(1, 'Title is required'),
-  subtitle: z.string().nullish(),
-  targetAmount: z.number().int().min(1),
-  fundedAmount: z.number().int().min(0),
-  projectLevel: fundAProjectInputSchema.shape.projectLevel.default('undergrad'),
-  coverImageUrl: z.string().nullish(),
-  coverImageAlt: z.string().nullish(),
-  content: z.any().optional().default({}),
-  tagIds: z.array(z.uuid()).max(50).optional(),
-})
-
-export type CreateFundAProjectInput = z.infer<typeof createFundAProjectSchema>
 
 /**
  * Creates a fund-a-project for the authenticated user and attaches optional tags.
  */
 export const createFundAProject = createServerFn({ method: 'POST' })
-  .inputValidator((data: unknown) => createFundAProjectSchema.parse(data))
+  .inputValidator((data: unknown) => fundAProjectInputSchema.parse(data))
   .handler(async ({ data }) => {
     const { currentUser } = await getCurrentUser()
     const uniqueTagIds = data.tagIds?.length ? [...new Set(data.tagIds)] : []
@@ -340,27 +321,12 @@ export const createFundAProject = createServerFn({ method: 'POST' })
     })
   })
 
-export const updateFundAProjectSchema = z.object({
-  id: z.uuid(),
-  title: z.string().min(1).optional(),
-  subtitle: z.string().nullish().optional(),
-  targetAmount: z.number().int().min(1).optional(),
-  fundedAmount: z.number().int().min(0).optional(),
-  projectLevel: fundAProjectInputSchema.shape.projectLevel.optional(),
-  coverImageUrl: z.string().nullish().optional(),
-  coverImageAlt: z.string().nullish().optional(),
-  content: z.any().optional(),
-  /** When set, replaces all tag links (use `[]` to clear). */
-  tagIds: z.array(z.uuid()).max(50).optional(),
-})
-
-export type UpdateFundAProjectInput = z.infer<typeof updateFundAProjectSchema>
-
 /**
- * Updates a fund-a-project. Only the creator may update it.
+ * Full replacement of a fund-a-project row and its tag links (HTTP PUT semantics).
+ * Uses POST because TanStack Start server functions only support GET | POST on the wire.
  */
 export const updateFundAProject = createServerFn({ method: 'POST' })
-  .inputValidator((data: unknown) => updateFundAProjectSchema.parse(data))
+  .inputValidator((data: unknown) => updateFundAProjectInputSchema.parse(data))
   .handler(async ({ data }) => {
     const { currentUser } = await getCurrentUser()
 
@@ -374,64 +340,37 @@ export const updateFundAProject = createServerFn({ method: 'POST' })
       return null
     }
 
-    const patch: Partial<{
-      title: string
-      subtitle: string | null
-      targetAmount: number
-      fundedAmount: number
-      projectLevel: 'highschool' | 'undergrad' | 'grad'
-      coverImageUrl: string | null
-      coverImageAlt: string | null
-      content: Record<string, unknown>
-    }> = {}
-
-    if (data.title !== undefined) patch.title = data.title
-    if (data.subtitle !== undefined) patch.subtitle = data.subtitle ?? null
-    if (data.targetAmount !== undefined) patch.targetAmount = data.targetAmount
-    if (data.fundedAmount !== undefined) patch.fundedAmount = data.fundedAmount
-    if (data.projectLevel !== undefined)
-      patch.projectLevel = data.projectLevel as
-        | 'highschool'
-        | 'undergrad'
-        | 'grad'
-    if (data.coverImageUrl !== undefined) {
-      patch.coverImageUrl = data.coverImageUrl?.trim() || null
-    }
-    if (data.coverImageAlt !== undefined) {
-      patch.coverImageAlt = data.coverImageAlt?.trim() || null
-    }
-    if (data.content !== undefined) patch.content = data.content
-
-    const hasPatch = Object.keys(patch).length > 0
-    const hasTagUpdate = data.tagIds !== undefined
-
-    if (!hasPatch && !hasTagUpdate) {
-      return loadFundAProjectWithJoins(data.id)
-    }
-
-    const uniqueTagIds =
-      data.tagIds !== undefined ? [...new Set(data.tagIds)] : []
+    const uniqueTagIds = [...new Set(data.tagIds ?? [])]
 
     await db.transaction(async (tx) => {
-      if (hasPatch) {
-        await tx
-          .update(fundAProject)
-          .set(patch)
-          .where(eq(fundAProject.id, data.id))
-      }
-      if (hasTagUpdate) {
-        await tx
-          .delete(fundAProjectTags)
-          .where(eq(fundAProjectTags.fundAProjectId, data.id))
-        if (uniqueTagIds.length > 0) {
-          await assertAllTagIdsExist(uniqueTagIds)
-          await tx.insert(fundAProjectTags).values(
-            uniqueTagIds.map((tagId) => ({
-              fundAProjectId: data.id,
-              tagId,
-            })),
-          )
-        }
+      await tx
+        .update(fundAProject)
+        .set({
+          title: data.title,
+          subtitle: data.subtitle ?? null,
+          targetAmount: data.targetAmount,
+          fundedAmount: data.fundedAmount,
+          projectLevel: data.projectLevel as
+            | 'highschool'
+            | 'undergrad'
+            | 'grad',
+          coverImageUrl: data.coverImageUrl?.trim() || null,
+          coverImageAlt: data.coverImageAlt?.trim() || null,
+          content: data.content ?? {},
+        })
+        .where(eq(fundAProject.id, data.id))
+
+      await tx
+        .delete(fundAProjectTags)
+        .where(eq(fundAProjectTags.fundAProjectId, data.id))
+      if (uniqueTagIds.length > 0) {
+        await assertAllTagIdsExist(uniqueTagIds)
+        await tx.insert(fundAProjectTags).values(
+          uniqueTagIds.map((tagId) => ({
+            fundAProjectId: data.id,
+            tagId,
+          })),
+        )
       }
     })
 

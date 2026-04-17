@@ -6,6 +6,7 @@ import { ac, admin, member, owner } from '@/lib/auth/permissions'
 import { db } from '@/db'
 import { organizationProfile } from '@/db/schema/organization.schema'
 import { userProfile } from '@/db/schema/auth.schema'
+import { sendOrganizationInvitationEmail } from '@/emails/send-email'
 
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL,
@@ -40,10 +41,23 @@ export const auth = betterAuth({
         admin,
         member,
       },
+      requireEmailVerificationOnInvitation: true,
+      async sendInvitationEmail(data) {
+        const baseURL = process.env.BETTER_AUTH_URL || 'http://localhost:3000'
+        const inviteLink = `${baseURL}/orgs/accept-invitation/${data.id}`
+        await sendOrganizationInvitationEmail({
+          email: data.email,
+          invitedByUsername: data.inviter.user.name,
+          invitedByEmail: data.inviter.user.email,
+          teamName: data.organization.name,
+          inviteLink,
+        })
+      },
       organizationHooks: {
         afterCreateOrganization: async ({ organization }) => {
           await db.insert(organizationProfile).values({
             organizationId: organization.id,
+            content: {},
           })
         },
       },

@@ -8,7 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 import { REQUEST_TYPE } from '@/constants/enums'
 import { getRequestDetailBody } from '@/lib/request-content-preview'
-import { getRequestById } from '@/sfn/requests'
+import {
+  getRequestById,
+  requestsPublicListDefaultSearch,
+} from '@/sfn/requests'
 import { getOptionalCurrentUser } from '@/sfn/users'
 
 export const Route = createFileRoute('/_public/requests/$id')({
@@ -56,7 +59,12 @@ function RouteComponent() {
           type="button"
           variant="outline"
           className="cursor-pointer"
-          onClick={() => navigate({ to: '/requests' })}
+          onClick={() =>
+            navigate({
+              to: '/requests',
+              search: requestsPublicListDefaultSearch,
+            })
+          }
         >
           Back to requests
         </Button>
@@ -76,7 +84,12 @@ function RouteComponent() {
           type="button"
           variant="ghost"
           className="cursor-pointer uppercase"
-          onClick={() => navigate({ to: '/requests' })}
+          onClick={() =>
+            navigate({
+              to: '/requests',
+              search: requestsPublicListDefaultSearch,
+            })
+          }
         >
           ← All requests
         </Button>

@@ -9,6 +9,7 @@ import type {
   FundAProjectInput,
   FundAProjectOutput,
   FundProjectLevel,
+  UpdateFundAProjectInput,
 } from '@/types/fund-a-project'
 import { RichTextEditor } from '@/components/core/tiptap/rich-text-editor'
 import { Button } from '@/components/ui/button'
@@ -40,7 +41,9 @@ import { listTagsForRequestsFormQO } from '@/sfn/requests'
 import {
   FUND_PROJECT_LEVEL_KEYS,
   FUND_PROJECT_LEVEL_LABEL,
+  fundAPublicListDefaultSearch,
   fundAProjectInputSchema,
+  updateFundAProjectInputSchema,
 } from '@/types/fund-a-project'
 
 const authenticatedRouteApi = getRouteApi('/_authenticated')
@@ -134,12 +137,10 @@ function FundAProjectFormInner({
   const updateMutation = useMutation({
     mutationFn: async (value: FundAProjectInput) => {
       if (!fundAProjectId) throw new Error('Missing campaign id')
-      return updateFundAProject({
-        data: {
-          id: fundAProjectId,
-          ...value,
-        },
-      })
+      const data: UpdateFundAProjectInput = updateFundAProjectInputSchema.parse(
+        { id: fundAProjectId, ...value },
+      )
+      return updateFundAProject({ data })
     },
     onSuccess: async (row) => {
       await queryClient.invalidateQueries({ queryKey: ['fund-a-projects'] })
@@ -489,15 +490,7 @@ function FundAProjectFormInner({
               onClick={() =>
                 navigate({
                   to: '/fund-a-project',
-                  search: {
-                    page: 1,
-                    pageSize: 12,
-                    q: undefined,
-                    sort: 'newest',
-                    tags: undefined,
-                    levels: undefined,
-                    featured: undefined,
-                  },
+                  search: fundAPublicListDefaultSearch,
                 })
               }
             >

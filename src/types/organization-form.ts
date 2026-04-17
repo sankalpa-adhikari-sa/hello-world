@@ -40,7 +40,9 @@ export type OrganizationFormValues = z.infer<typeof organizationFormSchema>
 
 export const organizationProfileFormSchema = z.object({
   subtitle: z.string().nullish(),
-  content: z.any(),
+  /** Stored in `organization_profile.content.about` for a simple long-form blurb. */
+  about: z.string().nullish(),
+  content: z.any().optional(),
   website: emptyOrUrl.nullish(),
   location: z.string().nullish(),
   industry: industryTypeEnum,

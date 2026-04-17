@@ -2,10 +2,7 @@ import { queryOptions } from '@tanstack/react-query'
 import { Outlet, createFileRoute } from '@tanstack/react-router'
 import { TopNavHeader } from '@/components/core/navigation/header/header'
 import { authMiddleware } from '@/middleware/auth'
-import {
-  listUserOrganizations,
-  listUserOrganizationsQO,
-} from '@/sfn/organization'
+import { listUserOrganizationsQO } from '@/sfn/organization'
 import { getCurrentUser } from '@/sfn/users'
 
 export const Route = createFileRoute('/_authenticated')({

@@ -98,7 +98,7 @@ export function FundmeCard({
         ) : null}
       </CardHeader>
 
-      <CardContent className="p-5 flex flex-col flex-grow">
+      <CardContent className="p-5 pb-2 flex flex-col grow">
         <div className="flex items-center gap-3 mb-4">
           <Avatar className="w-8 h-8 rounded-none after:rounded-none border-2 border-border shadow-2xs">
             <AvatarFallback className="bg-blue-200 text-[10px] font-bold rounded-none">
@@ -115,11 +115,11 @@ export function FundmeCard({
           </div>
         </div>
 
-        <h3 className="font-sans font-bold text-lg leading-tight uppercase mb-6 flex-grow">
+        <h3 className="font-sans font-bold text-lg leading-tight uppercase mb-6 grow">
           {title}
         </h3>
 
-        <div className="relative mb-4">
+        <div className="relative">
           <Progress
             value={progress}
             className="h-7 flex flex-col gap-0 overflow-hidden border-2 border-border bg-background shadow-2xs rounded-none"
@@ -131,7 +131,7 @@ export function FundmeCard({
         </div>
       </CardContent>
 
-      <CardFooter className="px-5 pb-5 pt-0 flex justify-between items-end mt-auto">
+      <CardFooter className="px-5 pb-5 pt-0 flex justify-between items-end">
         <div className="flex flex-col">
           <span className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
             Target Goal
