@@ -1,5 +1,4 @@
 import * as React from 'react'
-import type { ReactNode } from 'react'
 import {
   flexRender,
   getCoreRowModel,
@@ -11,13 +10,15 @@ import {
 } from '@tanstack/react-table'
 import { DataTablePagination } from './data-table-pagination'
 import { DataTableToolbar } from './data-table-toolbar'
+import type { ReactNode } from 'react'
 import type {
   ColumnDef,
   ColumnFiltersState,
-  SortingState,
-  VisibilityState,
   OnChangeFn,
   PaginationState,
+  SortingState,
+  Table as TanStackTable,
+  VisibilityState,
 } from '@tanstack/react-table'
 import {
   Table,
@@ -71,88 +72,40 @@ interface DataTableProps<TData, TValue> {
     summary: string
     activeCount: number
   }
+  /**
+   * When set, layout uses this table instance (e.g. from `useDataTable` + `useTableState`)
+   * instead of creating an internal `useReactTable`.
+   */
+  externalTable?: TanStackTable<TData>
 }
 
-export function DataTable<TData, TValue>({
-  columns,
-  data,
-  filterOptions,
+type DataTableInnerProps<TData, TValue> = Omit<
+  DataTableProps<TData, TValue>,
+  'externalTable' | 'columns' | 'data' | 'pagination' | 'onPaginationChange'
+> & {
+  table: TanStackTable<TData>
+  /** Used only for empty-state colspan when no headers render. */
+  columnCount: number
+}
+
+function DataTableInner<TData, TValue>({
+  table,
+  columnCount,
   tableSearchColumn,
+  filterOptions,
   renderMobileCard,
   viewMode = 'responsive',
-  rowCount,
-  pagination: controlledPagination,
-  onPaginationChange,
   pageSizeOptions,
   serverSearch,
   serverSort,
   serverToolbarExtras,
   listReset,
   filterPopoverMeta,
-}: DataTableProps<TData, TValue>) {
-  const [rowSelection, setRowSelection] = React.useState({})
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({})
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    [],
-  )
-  const [sorting, setSorting] = React.useState<SortingState>([])
-  const [columnSizing, setColumnSizing] = React.useState({})
-  const [internalPagination, setInternalPagination] =
-    React.useState<PaginationState>({
-      pageIndex: 0,
-      pageSize: 10,
-    })
-  const pagination = controlledPagination ?? internalPagination
-
-  const table = useReactTable({
-    data,
-    columns,
-    state: {
-      sorting,
-      columnVisibility,
-      rowSelection,
-      columnFilters,
-      columnSizing,
-      pagination,
-    },
-    defaultColumn: {
-      minSize: 60,
-      maxSize: 800,
-      size: 150,
-    },
-    enableRowSelection: true,
-    enableColumnResizing: true,
-    onRowSelectionChange: setRowSelection,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    onColumnVisibilityChange: setColumnVisibility,
-    onColumnSizingChange: setColumnSizing,
-    onPaginationChange: (updater) => {
-      const newPagination =
-        typeof updater === 'function' ? updater(pagination) : updater
-      if (controlledPagination === undefined) {
-        setInternalPagination(newPagination)
-      }
-      onPaginationChange?.(newPagination)
-    },
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFacetedRowModel: getFacetedRowModel(),
-    getFacetedUniqueValues: getFacetedUniqueValues(),
-    columnResizeMode: 'onChange',
-    columnResizeDirection: 'ltr',
-    manualPagination: true,
-    manualFiltering: serverSearch !== undefined,
-    rowCount: rowCount,
-  })
-
+}: DataTableInnerProps<TData, TValue>) {
   const columnSizeVars = React.useMemo(() => {
     const headers = table.getFlatHeaders()
     const colSizes: { [key: string]: number } = {}
-    for (let i = 0; i < headers.length; i++) {
-      const header = headers[i]!
+    for (const header of headers) {
       colSizes[`--header-${header.id}-size`] = header.getSize()
       colSizes[`--col-${header.column.id}-size`] = header.column.getSize()
     }
@@ -196,7 +149,7 @@ export function DataTable<TData, TValue>({
                     return (
                       <TableHead
                         style={{
-                          width: `calc(var(--header-${header?.id}-size) * 1px)`,
+                          width: `calc(var(--header-${header.id}-size) * 1px)`,
                         }}
                         className="bg-sidebar border-border relative h-9 border-y select-none first:rounded-l-lg first:border-l last:rounded-r-lg last:border-r"
                         key={header.id}
@@ -264,7 +217,7 @@ export function DataTable<TData, TValue>({
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={columns.length}
+                    colSpan={Math.max(1, columnCount)}
                     className="h-24 text-center"
                   >
                     No results.
@@ -278,13 +231,10 @@ export function DataTable<TData, TValue>({
       {renderMobileCard && (
         <div
           className={cn(
-            // Responsive grid layout for mobile cards
             viewMode === 'mobile'
               ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
               : 'flex flex-col gap-3',
-            // Hide in desktop mode
             viewMode === 'desktop' && 'hidden',
-            // Hide on md+ screens in responsive mode
             viewMode === 'responsive' && 'md:hidden',
           )}
         >
@@ -306,5 +256,130 @@ export function DataTable<TData, TValue>({
         pageSizeOptions={pageSizeOptions}
       />
     </div>
+  )
+}
+
+function DataTableWithInternalTable<TData, TValue>({
+  columns,
+  data,
+  filterOptions,
+  tableSearchColumn,
+  renderMobileCard,
+  viewMode = 'responsive',
+  rowCount,
+  pagination: controlledPagination,
+  onPaginationChange,
+  pageSizeOptions,
+  serverSearch,
+  serverSort,
+  serverToolbarExtras,
+  listReset,
+  filterPopoverMeta,
+}: Omit<DataTableProps<TData, TValue>, 'externalTable'>) {
+  const [rowSelection, setRowSelection] = React.useState({})
+  const [columnVisibility, setColumnVisibility] =
+    React.useState<VisibilityState>({})
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+    [],
+  )
+  const [sorting, setSorting] = React.useState<SortingState>([])
+  const [columnSizing, setColumnSizing] = React.useState({})
+  const [internalPagination, setInternalPagination] =
+    React.useState<PaginationState>({
+      pageIndex: 0,
+      pageSize: 10,
+    })
+  const pagination = controlledPagination ?? internalPagination
+
+  const table: TanStackTable<TData> = useReactTable({
+    data,
+    columns,
+    state: {
+      sorting,
+      columnVisibility,
+      rowSelection,
+      columnFilters,
+      columnSizing,
+      pagination,
+    },
+    defaultColumn: {
+      minSize: 60,
+      maxSize: 800,
+      size: 150,
+    },
+    enableRowSelection: true,
+    enableColumnResizing: true,
+    onRowSelectionChange: setRowSelection,
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    onColumnVisibilityChange: setColumnVisibility,
+    onColumnSizingChange: setColumnSizing,
+    onPaginationChange: (updater) => {
+      const newPagination =
+        typeof updater === 'function' ? updater(pagination) : updater
+      if (controlledPagination === undefined) {
+        setInternalPagination(newPagination)
+      }
+      onPaginationChange?.(newPagination)
+    },
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFacetedRowModel: getFacetedRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
+    columnResizeMode: 'onChange',
+    columnResizeDirection: 'ltr',
+    manualPagination: true,
+    manualFiltering: serverSearch !== undefined,
+    rowCount: rowCount,
+  })
+
+  return (
+    <DataTableInner
+      table={table}
+      columnCount={columns.length}
+      tableSearchColumn={tableSearchColumn}
+      filterOptions={filterOptions}
+      renderMobileCard={renderMobileCard}
+      viewMode={viewMode}
+      pageSizeOptions={pageSizeOptions}
+      serverSearch={serverSearch}
+      serverSort={serverSort}
+      serverToolbarExtras={serverToolbarExtras}
+      listReset={listReset}
+      filterPopoverMeta={filterPopoverMeta}
+    />
+  )
+}
+
+export function DataTable<TData, TValue>({
+  externalTable,
+  columns,
+  ...rest
+}: DataTableProps<TData, TValue>) {
+  if (externalTable) {
+    return (
+      <DataTableInner
+        table={externalTable}
+        columnCount={columns.length}
+        tableSearchColumn={rest.tableSearchColumn}
+        filterOptions={rest.filterOptions}
+        renderMobileCard={rest.renderMobileCard}
+        viewMode={rest.viewMode}
+        pageSizeOptions={rest.pageSizeOptions}
+        serverSearch={rest.serverSearch}
+        serverSort={rest.serverSort}
+        serverToolbarExtras={rest.serverToolbarExtras}
+        listReset={rest.listReset}
+        filterPopoverMeta={rest.filterPopoverMeta}
+      />
+    )
+  }
+
+  return (
+    <DataTableWithInternalTable
+      columns={columns}
+      {...rest}
+    />
   )
 }

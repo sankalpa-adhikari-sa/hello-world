@@ -93,10 +93,7 @@ async function loadFundAProjectWithJoins(
   return row ? toFundAProjectOutput(row) : null
 }
 
-/**
- * Loads one fund-a-project row with tags, creator, and `card` props for the listing UI.
- * Public (no auth).
- */
+
 export const getFundAProjectById = createServerFn({ method: 'GET' })
   .inputValidator((data: unknown) => getFundAProjectByIdInputSchema.parse(data))
   .handler(async ({ data }) => loadFundAProjectWithJoins(data.id))
@@ -149,9 +146,7 @@ export function fundAPublicListHasActiveFilters(
   return false
 }
 
-/**
- * Maps validated public list URL search to `getFundAProjects` input (pagination + filters).
- */
+
 export function fundAPublicSearchToListInput(
   search: FundAPublicListSearch,
 ): GetFundAProjectsInput {
@@ -171,14 +166,9 @@ export function fundAPublicSearchToListInput(
   }
 }
 
-/** Lowest funded ratio first (then newest as tie-breaker). */
 const urgencyOrderSql = sql`CASE WHEN ${fundAProject.targetAmount} > 0 THEN (${fundAProject.fundedAmount}::numeric / NULLIF(${fundAProject.targetAmount}, 0)) ELSE 1 END`
 
-/**
- * Lists fund-a-project rows with optional title/subtitle search, tag filter (any match),
- * optional level and featured filters, sort (newest / oldest / urgent), and offset pagination.
- * Public (no auth).
- */
+
 export const getFundAProjects = createServerFn({ method: 'GET' })
   .inputValidator((data: unknown) =>
     getFundAProjectsInputSchema.parse(
@@ -272,9 +262,7 @@ export const getFundAProjectsQO = (
   })
 }
 
-/**
- * Creates a fund-a-project for the authenticated user and attaches optional tags.
- */
+
 export const createFundAProject = createServerFn({ method: 'POST' })
   .inputValidator((data: unknown) => fundAProjectInputSchema.parse(data))
   .handler(async ({ data }) => {
@@ -321,10 +309,7 @@ export const createFundAProject = createServerFn({ method: 'POST' })
     })
   })
 
-/**
- * Full replacement of a fund-a-project row and its tag links (HTTP PUT semantics).
- * Uses POST because TanStack Start server functions only support GET | POST on the wire.
- */
+
 export const updateFundAProject = createServerFn({ method: 'POST' })
   .inputValidator((data: unknown) => updateFundAProjectInputSchema.parse(data))
   .handler(async ({ data }) => {

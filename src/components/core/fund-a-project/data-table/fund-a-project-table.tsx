@@ -1,3 +1,12 @@
+import { useQuery } from '@tanstack/react-query'
+import { Link } from '@tanstack/react-router'
+import { useServerFn } from '@tanstack/react-start'
+import { EllipsisIcon, EyeIcon, PencilIcon, ViewIcon } from 'lucide-react'
+import { useCallback, useMemo, useState } from 'react'
+import type { ColumnDef } from '@tanstack/react-table'
+import type { UseTableStateReturn } from '@/components/core/server-table'
+import type {
+  FundAProjectOutput,FundAPublicListSearch, FundProjectLevelValue, GetFundAProjectsResult} from '@/types/fund-a-project';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -8,18 +17,12 @@ import { DataTableSimpleFilter } from '@/components/ui/data-table/data-table-sim
 import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
 import {
-  FUND_PROJECT_LEVEL_LABEL,
-  FundAProjectOutput,
-  type FundAPublicListSearch,
-  type FundProjectLevelValue,
-  type GetFundAProjectsResult,
+  FUND_PROJECT_LEVEL_LABEL
+  
+  
+  
 } from '@/types/fund-a-project'
-import { useQuery } from '@tanstack/react-query'
-import { Link } from '@tanstack/react-router'
-import { useServerFn } from '@tanstack/react-start'
-import type { ColumnDef } from '@tanstack/react-table'
-import type { PaginationState, OnChangeFn } from '@tanstack/react-table'
-import { EllipsisIcon, EyeIcon, PencilIcon, ViewIcon } from 'lucide-react'
+import { useDataTable } from '@/components/core/server-table'
 import {
   Sheet,
   SheetClose,
@@ -35,9 +38,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useCallback, useMemo, useState } from 'react'
 import { FUND_PROJECT_LEVEL } from '@/constants/enums'
 import { getOptionalCurrentUser } from '@/sfn/users'
+
 const FUND_LIST_SORT_OPTIONS: Array<{
   value: FundAPublicListSearch['sort']
   label: string
@@ -67,9 +70,9 @@ export type FundAListUrlControls = {
 }
 
 type FundAProjectTableProps = {
+  /** Pagination/sort state from `useTableState` (server-table), bridged via `useDataTable`. */
+  serverTable: UseTableStateReturn
   data: GetFundAProjectsResult
-  /** Sync with URL / server (1-based page in search → 0-based index here). */
-  pagination?: PaginationState
   pageSizeOptions?: Array<number>
   filterOptions?: Array<{
     title: string
@@ -79,7 +82,6 @@ type FundAProjectTableProps = {
     data: Array<{ label: string; value: string }>
     useSimpleFilter?: boolean
   }>
-  onPaginationChange?: OnChangeFn<PaginationState>
   /** Draft query for toolbar; use with `onSearchSubmit` to commit URL `q` → server `ilike`. */
   searchQuery?: string
   onSearchQueryChange?: (value: string) => void
@@ -89,11 +91,12 @@ type FundAProjectTableProps = {
   fundListUrl?: FundAListUrlControls
 }
 
-const fieldsColumns = (
+export const createFundAProjectTableColumns = (
   setPreviewData: (data: FundAProjectOutput) => void,
 ): Array<ColumnDef<FundAProjectOutput>> => [
   {
     accessorKey: 'title',
+    enableSorting: false,
     header: 'Title',
     cell: ({ row }) => (
       <div className="font-medium">{row.getValue('title')}</div>
@@ -101,17 +104,19 @@ const fieldsColumns = (
   },
   {
     accessorKey: 'targetAmount',
+    enableSorting: false,
     header: 'Target Amount',
     cell: ({ row }) => {
-      const amount = row.getValue('targetAmount') as number
+      const amount = row.original.targetAmount
       return <div className="font-mono">${amount.toLocaleString()}</div>
     },
   },
   {
     accessorKey: 'fundedAmount',
+    enableSorting: false,
     header: 'Funded Amount',
     cell: ({ row }) => {
-      const amount = row.getValue('fundedAmount') as number
+      const amount = row.original.fundedAmount
       return (
         <div className="font-mono text-green-600">
           ${amount.toLocaleString()}
@@ -121,9 +126,10 @@ const fieldsColumns = (
   },
   {
     accessorKey: 'projectLevel',
+    enableSorting: false,
     header: 'Level',
     cell: ({ row }) => {
-      const level = row.getValue('projectLevel') as string
+      const level = row.original.projectLevel
       return (
         <Badge variant="secondary">{FUND_PROJECT_LEVEL_LABEL[level]}</Badge>
       )
@@ -131,6 +137,7 @@ const fieldsColumns = (
   },
   {
     id: 'actions',
+    enableSorting: false,
     cell: ({ row }) => (
       <TableRowActions data={row.original} onPreview={setPreviewData} />
     ),
@@ -138,11 +145,10 @@ const fieldsColumns = (
 ]
 
 export default function FundAProjectTable({
+  serverTable,
   data,
-  pagination,
   pageSizeOptions,
   filterOptions,
-  onPaginationChange,
   searchQuery,
   onSearchQueryChange,
   onSearchSubmit,
@@ -157,25 +163,36 @@ export default function FundAProjectTable({
     queryKey: ['optionalCurrentUser'],
     queryFn: () => getOptionalUser(),
   })
-  const sessionUserId = authPayload?.currentUser?.id ?? null
+  const sessionUserId = authPayload?.currentUser.id ?? null
 
-  const handlePreview = useCallback((data: FundAProjectOutput) => {
-    setPreviewData(data)
+  const handlePreview = useCallback((row: FundAProjectOutput) => {
+    setPreviewData(row)
   }, [])
-  const columns = useMemo(() => fieldsColumns(handlePreview), [handlePreview])
+  const columns = useMemo(
+    () => createFundAProjectTableColumns(handlePreview),
+    [handlePreview],
+  )
+
+  const { reactTable } = useDataTable({
+    data: data.items,
+    total: data.total,
+    table: serverTable,
+    columns,
+    getRowId: (row) => row.id,
+  })
 
   const renderMobileCard = useCallback(
-    (data: FundAProjectOutput) => {
-      const pct = fundedPercent(data.fundedAmount, data.targetAmount)
+    (row: FundAProjectOutput) => {
+      const pct = fundedPercent(row.fundedAmount, row.targetAmount)
       const canEdit =
-        sessionUserId !== null && sessionUserId === data.createdById
+        sessionUserId !== null && sessionUserId === row.createdById
       return (
         <Card className="flex h-full cursor-pointer flex-col border-2 border-border pt-0 shadow-sm">
           <CardHeader className="p-0 relative h-68 border-b-2 border-border bg-muted flex items-center justify-center overflow-hidden space-y-0">
-            {data.coverImageUrl ? (
+            {row.coverImageUrl ? (
               <img
-                src={data.coverImageUrl}
-                alt={data.coverImageAlt ?? data.title}
+                src={row.coverImageUrl}
+                alt={row.coverImageAlt ?? row.title}
                 loading="lazy"
                 decoding="async"
                 className="absolute inset-0 z-0 size-full object-cover grayscale"
@@ -183,15 +200,15 @@ export default function FundAProjectTable({
             ) : (
               <>
                 <div className="absolute inset-0 bg-gray-200 grayscale opacity-50 mix-blend-multiply" />
-                {(data.coverImageAlt ?? data.title) ? (
+                {(row.coverImageAlt ?? row.title) ? (
                   <span className="relative z-10 font-mono text-muted-foreground">
-                    {data.coverImageAlt ?? data.title}
+                    {row.coverImageAlt ?? row.title}
                   </span>
                 ) : null}
               </>
             )}
             <Badge className="absolute top-3 right-3 z-10 bg-primary text-primary-foreground border-2 border-border px-2 py-0.5 text-xs font-bold uppercase tracking-widest shadow-2xs rounded-none hover:bg-primary">
-              {FUND_PROJECT_LEVEL_LABEL[data.projectLevel]}
+              {FUND_PROJECT_LEVEL_LABEL[row.projectLevel]}
             </Badge>
 
             {canEdit ? (
@@ -204,8 +221,8 @@ export default function FundAProjectTable({
                   <Link
                     to="/u/$uId/fund-a-project/$fundAProjectId/edit"
                     params={{
-                      uId: data.createdById,
-                      fundAProjectId: data.id,
+                      uId: row.createdById,
+                      fundAProjectId: row.id,
                     }}
                   />
                 }
@@ -218,20 +235,20 @@ export default function FundAProjectTable({
             <div className="flex items-center gap-3 mb-4">
               <Avatar className="w-8 h-8 rounded-none after:rounded-none border-2 border-border shadow-2xs">
                 <AvatarFallback className="bg-blue-200 text-[10px] font-bold rounded-none">
-                  {data.createdBy.name.substring(0, 2).toUpperCase()}
+                  {row.createdBy.name.substring(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="flex flex-col">
                 <span className="text-xs font-bold uppercase tracking-tight">
-                  {data.createdBy.name}
+                  {row.createdBy.name}
                 </span>
                 <span className="text-[10px] text-muted-foreground uppercase">
-                  {data.createdBy.studentMajor}
+                  {row.createdBy.studentMajor}
                 </span>
               </div>
             </div>
             <h3 className="font-sans font-bold text-lg leading-tight uppercase mb-6 grow">
-              {data.title}
+              {row.title}
             </h3>
 
             <div className="relative">
@@ -251,11 +268,11 @@ export default function FundAProjectTable({
                 Target Goal
               </span>
               <span className="font-mono font-bold text-lg leading-none">
-                ${data.targetAmount.toLocaleString()}
+                ${row.targetAmount.toLocaleString()}
               </span>
             </div>
             <Button variant="outline">
-              <Link to="/fund-a-project/$id" params={{ id: data.id }}>
+              <Link to="/fund-a-project/$id" params={{ id: row.id }}>
                 View Details
               </Link>
             </Button>
@@ -276,7 +293,7 @@ export default function FundAProjectTable({
           variant="multiple"
           values={fundListUrl.selectedLevels}
           onValuesChange={(ids) =>
-            fundListUrl.onLevelsChange(ids as Array<FundProjectLevelValue>)
+            fundListUrl.onLevelsChange(ids)
           }
         />
         <DataTableSimpleFilter
@@ -325,7 +342,7 @@ export default function FundAProjectTable({
 
   const filterPopoverMeta = useMemo(() => {
     if (!fundListUrl) return undefined
-    const parts: string[] = []
+    const parts: Array<string> = []
     if (fundListUrl.selectedLevels.length > 0) {
       parts.push(
         fundListUrl.selectedLevels
@@ -363,14 +380,13 @@ export default function FundAProjectTable({
       <DataTable
         columns={columns}
         data={data.items}
+        externalTable={reactTable}
         tableSearchColumn="title"
         filterOptions={filterOptions}
         renderMobileCard={renderMobileCard}
         viewMode="mobile"
         rowCount={data.total}
-        pagination={pagination}
         pageSizeOptions={pageSizeOptions}
-        onPaginationChange={onPaginationChange}
         serverSearch={
           searchQuery !== undefined && onSearchQueryChange
             ? {
@@ -467,7 +483,7 @@ export default function FundAProjectTable({
                     />
                   </div>
 
-                  {previewData.tags && previewData.tags.length > 0 && (
+                  {previewData.tags.length > 0 && (
                     <div>
                       <p className="text-sm font-medium mb-2">Tags</p>
                       <div className="flex flex-wrap gap-2">
