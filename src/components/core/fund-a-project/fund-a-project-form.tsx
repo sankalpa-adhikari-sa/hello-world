@@ -41,8 +41,8 @@ import { listTagsForRequestsFormQO } from '@/sfn/requests'
 import {
   FUND_PROJECT_LEVEL_KEYS,
   FUND_PROJECT_LEVEL_LABEL,
-  fundAPublicListDefaultSearch,
   fundAProjectInputSchema,
+  fundAPublicListDefaultSearch,
   updateFundAProjectInputSchema,
 } from '@/types/fund-a-project'
 

@@ -251,10 +251,7 @@ function DataTableInner<TData, TValue>({
           )}
         </div>
       )}
-      <DataTablePagination
-        table={table}
-        pageSizeOptions={pageSizeOptions}
-      />
+      <DataTablePagination table={table} pageSizeOptions={pageSizeOptions} />
     </div>
   )
 }
@@ -376,10 +373,5 @@ export function DataTable<TData, TValue>({
     )
   }
 
-  return (
-    <DataTableWithInternalTable
-      columns={columns}
-      {...rest}
-    />
-  )
+  return <DataTableWithInternalTable columns={columns} {...rest} />
 }

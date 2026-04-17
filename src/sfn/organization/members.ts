@@ -4,10 +4,10 @@ import { getRequestHeaders } from '@tanstack/react-start/server'
 import { z } from 'zod'
 import { queryOptions } from '@tanstack/react-query'
 
+import { requireRole } from './require-membership'
 import { MANAGER_ROLES, OrgRoles } from '@/sfn/organization/org-roles'
 import { getCurrentUser } from '@/sfn/users'
 import { auth } from '@/lib/auth/auth'
-import { requireRole } from './require-membership'
 
 /**
  * Zod schema for validating list members query parameters.

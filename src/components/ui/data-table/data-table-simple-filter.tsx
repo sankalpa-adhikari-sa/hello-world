@@ -32,8 +32,8 @@ interface DataTableSimpleFilterProps<TData, TValue> {
    * Controlled multi-select without a TanStack column (e.g. URL + server fetch).
    * When both are set, `column` is ignored for the multiple UI.
    */
-  values?: string[]
-  onValuesChange?: (values: string[]) => void
+  values?: Array<string>
+  onValuesChange?: (values: Array<string>) => void
 }
 
 function optionLabel(
@@ -51,8 +51,8 @@ function SimpleFilterMultipleCombo({
 }: {
   title: string
   options: Array<{ label: string; value: string }>
-  value: string[]
-  onChange: (next: string[]) => void
+  value: Array<string>
+  onChange: (next: Array<string>) => void
 }) {
   const anchor = useComboboxAnchor()
   const items = useMemo(() => options.map((o) => o.value), [options])
@@ -76,11 +76,11 @@ function SimpleFilterMultipleCombo({
           items={items}
           value={value}
           onValueChange={(next) => {
-            const list = (next ?? []) as Array<string>
+            const list = (next ?? [])
             onChange(list)
           }}
         >
-            <ComboboxChips ref={anchor} className="w-full max-w-xs">
+          <ComboboxChips ref={anchor} className="w-full max-w-xs">
             <ComboboxValue>
               {(values: Array<string>) => (
                 <>
@@ -97,7 +97,11 @@ function SimpleFilterMultipleCombo({
               )}
             </ComboboxValue>
           </ComboboxChips>
-          <ComboboxContent anchor={anchor} align="start" className="min-w-(--anchor-width)">
+          <ComboboxContent
+            anchor={anchor}
+            align="start"
+            className="min-w-(--anchor-width)"
+          >
             <ComboboxEmpty>No matches.</ComboboxEmpty>
             <ComboboxList>
               {(item: string) => (
@@ -188,9 +192,7 @@ export function DataTableSimpleFilter<TData, TValue>({
   }
 
   const filterValue = column?.getFilterValue()
-  const fromColumn = Array.from(
-    new Set((filterValue as Array<string>) || []),
-  )
+  const fromColumn = Array.from(new Set((filterValue as Array<string>) || []))
 
   return (
     <SimpleFilterMultipleCombo

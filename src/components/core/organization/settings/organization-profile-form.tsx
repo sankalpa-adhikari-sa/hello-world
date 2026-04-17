@@ -3,12 +3,12 @@
 import { useForm } from '@tanstack/react-form'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import type { GetOrganizationProfileResult } from '@/sfn/organization/profile'
 import {
   COMPANY_SIZE,
   INDUSTRY_TYPE,
   ORGANIZATION_TYPE,
 } from '@/constants/enums'
-import type { GetOrganizationProfileResult } from '@/sfn/organization/profile'
 import { updateOrganizationProfile } from '@/sfn/organization/profile'
 import { organizationProfileFormSchema } from '@/types/organization-form'
 import { Button } from '@/components/ui/button'
@@ -117,7 +117,7 @@ export function OrganizationProfileForm({
     },
     onSubmit: async ({ value }) => {
       if (!canEdit) return
-      await mutation.mutateAsync(value as Record<string, unknown>)
+      await mutation.mutateAsync(value)
     },
   })
 

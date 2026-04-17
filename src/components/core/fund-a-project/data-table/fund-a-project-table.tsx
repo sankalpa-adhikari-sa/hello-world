@@ -6,7 +6,11 @@ import { useCallback, useMemo, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { UseTableStateReturn } from '@/components/core/server-table'
 import type {
-  FundAProjectOutput,FundAPublicListSearch, FundProjectLevelValue, GetFundAProjectsResult} from '@/types/fund-a-project';
+  FundAProjectOutput,
+  FundAPublicListSearch,
+  FundProjectLevelValue,
+  GetFundAProjectsResult,
+} from '@/types/fund-a-project'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -16,12 +20,7 @@ import { DataTable } from '@/components/ui/data-table/data-table'
 import { DataTableSimpleFilter } from '@/components/ui/data-table/data-table-simple-filter'
 import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
-import {
-  FUND_PROJECT_LEVEL_LABEL
-  
-  
-  
-} from '@/types/fund-a-project'
+import { FUND_PROJECT_LEVEL_LABEL } from '@/types/fund-a-project'
 import { useDataTable } from '@/components/core/server-table'
 import {
   Sheet,
@@ -292,9 +291,7 @@ export default function FundAProjectTable({
           options={LEVEL_FILTER_OPTIONS}
           variant="multiple"
           values={fundListUrl.selectedLevels}
-          onValuesChange={(ids) =>
-            fundListUrl.onLevelsChange(ids)
-          }
+          onValuesChange={(ids) => fundListUrl.onLevelsChange(ids)}
         />
         <DataTableSimpleFilter
           title="Tags"
@@ -352,8 +349,7 @@ export default function FundAProjectTable({
     }
     if (fundListUrl.selectedTagIds.length > 0) {
       const labels = fundListUrl.selectedTagIds.map(
-        (id) =>
-          fundListUrl.tagOptions.find((t) => t.value === id)?.label ?? id,
+        (id) => fundListUrl.tagOptions.find((t) => t.value === id)?.label ?? id,
       )
       parts.push(
         labels.length <= 3
@@ -369,8 +365,7 @@ export default function FundAProjectTable({
       fundListUrl.selectedTagIds.length +
       (fundListUrl.featuredOnly ? 1 : 0)
     return {
-      summary:
-        parts.length > 0 ? parts.join(' · ') : 'No filters applied yet.',
+      summary: parts.length > 0 ? parts.join(' · ') : 'No filters applied yet.',
       activeCount,
     }
   }, [fundListUrl])

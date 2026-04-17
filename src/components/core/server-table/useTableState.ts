@@ -1,13 +1,13 @@
 import {
+  
+  
   useCallback,
   useEffect,
   useMemo,
-  useState,
-  type Dispatch,
-  type SetStateAction,
-} from "react";
-import differenceWith from "lodash-es/differenceWith";
-import isEqual from "lodash-es/isEqual";
+  useState
+} from 'react'
+import differenceWith from 'lodash-es/differenceWith'
+import isEqual from 'lodash-es/isEqual'
 
 import {
   parseTableParams,
@@ -15,81 +15,98 @@ import {
   setInitialSorters,
   unionFilters,
   unionSorters,
-} from "./table-params";
-import type { CrudFilter, CrudSort, Pagination } from "./types";
+} from './table-params'
+import { useDebouncedCallback } from './utils/debounce'
+import type {Dispatch, SetStateAction} from 'react';
+import type {
+  ColumnVisibility,
+  CrudFilter,
+  CrudSort,
+  Pagination,
+} from './types'
 
-type SetFilterBehavior = "merge" | "replace";
+type SetFilterBehavior = 'merge' | 'replace'
 
 export type TableStateSyncPayload = {
-  currentPage: number;
-  pageSize: number;
-  sorters: CrudSort[];
-  filters: CrudFilter[];
-};
+  currentPage: number
+  pageSize: number
+  sorters: Array<CrudSort>
+  filters: Array<CrudFilter>
+}
 
 export type UseTableStateProps = {
-  pagination?: Pagination;
+  pagination?: Pagination
   sorters?: {
-    initial?: CrudSort[];
-    permanent?: CrudSort[];
-    mode?: "server" | "off";
-  };
+    initial?: Array<CrudSort>
+    permanent?: Array<CrudSort>
+    mode?: 'server' | 'off'
+  }
   filters?: {
-    initial?: CrudFilter[];
-    permanent?: CrudFilter[];
-    defaultBehavior?: SetFilterBehavior;
-    mode?: "server" | "off";
-  };
+    initial?: Array<CrudFilter>
+    permanent?: Array<CrudFilter>
+    defaultBehavior?: SetFilterBehavior
+    mode?: 'server' | 'off'
+  }
+  columnVisibilityConfig?: ColumnVisibility
   /**
    * When true, initial values (and updates when `searchString` changes) are derived
    * from query strings parsed with `parseTableParams` (nested `qs` format).
    */
-  syncWithSearch?: boolean;
+  syncWithSearch?: boolean
   /**
    * Current search string (`?page=1&...` or `page=1&...`). Used when `syncWithSearch` is true.
    */
-  searchString?: string;
+  searchString?: string
   /**
    * Called after pagination, sorting, or filtering changes — use to persist state in the URL
    * (e.g. `navigate({ search: stringifyTableParams(...) })`).
    */
-  onStateChange?: (payload: TableStateSyncPayload) => void;
-};
+  onStateChange?: (payload: TableStateSyncPayload) => void
+  /**
+   * Optional delay in milliseconds for debouncing filter changes.
+   * Set to 0 to disable debouncing. Default: 0 (no debouncing).
+   */
+  debounceDelay?: number
+}
 
 export type UseTableStateReturn = {
   modes: {
-    filters: "server" | "off";
-    sorters: "server" | "off";
-    pagination: NonNullable<Pagination["mode"]>;
-  };
-  sorters: CrudSort[];
-  setSorters: (sorter: CrudSort[]) => void;
-  filters: CrudFilter[];
-  setFilters: ((
-    filters: CrudFilter[],
-    behavior?: SetFilterBehavior,
-  ) => void) &
-    ((setter: (prevFilters: CrudFilter[]) => CrudFilter[]) => void);
-  currentPage: number;
-  setCurrentPage: Dispatch<SetStateAction<number>>;
-  pageSize: number;
-  setPageSize: Dispatch<SetStateAction<number>>;
+    filters: 'server' | 'off'
+    sorters: 'server' | 'off'
+    pagination: NonNullable<Pagination['mode']>
+  }
+  sorters: Array<CrudSort>
+  setSorters: (sorters: Array<CrudSort>) => void
+  filters: Array<CrudFilter>
+  setFilters: ((filters: Array<CrudFilter>, behavior?: SetFilterBehavior) => void) &
+    ((setter: (prevFilters: Array<CrudFilter>) => Array<CrudFilter>) => void)
+  currentPage: number
+  setCurrentPage: Dispatch<SetStateAction<number>>
+  pageSize: number
+  setPageSize: Dispatch<SetStateAction<number>>
+  columnVisibility: Record<string, boolean>
+  setColumnVisibility: Dispatch<SetStateAction<Record<string, boolean>>>
   /** Arguments suitable for a list API when using server-side modes. */
   getServerListParams: () => {
-    pagination: { currentPage: number; pageSize: number; mode?: Pagination["mode"] };
-    filters: CrudFilter[] | undefined;
-    sorters: CrudSort[] | undefined;
-  };
-};
+    pagination: {
+      currentPage: number
+      pageSize: number
+      mode?: Pagination['mode']
+    }
+    filters: Array<CrudFilter> | undefined
+    sorters: Array<CrudSort> | undefined
+  }
+}
 
-const defaultPermanentFilter: CrudFilter[] = [];
-const defaultPermanentSorter: CrudSort[] = [];
+const defaultPermanentFilter: Array<CrudFilter> = []
+const defaultPermanentSorter: Array<CrudSort> = []
+const defaultPermanentColumnVisibility: Record<string, boolean> = {}
 
 function normalizeSearchString(search?: string): string {
-  if (search === undefined || search === "") {
-    return "?";
+  if (search === undefined || search === '') {
+    return '?'
   }
-  return search.startsWith("?") ? search : `?${search}`;
+  return search.startsWith('?') ? search : `?${search}`
 }
 
 /**
@@ -100,115 +117,122 @@ export function useTableState({
   pagination,
   filters: filtersFromProp,
   sorters: sortersFromProp,
+  columnVisibilityConfig,
   syncWithSearch = false,
   searchString,
   onStateChange,
+  debounceDelay = 0,
 }: UseTableStateProps = {}): UseTableStateReturn {
   const isServerSideFilteringEnabled =
-    (filtersFromProp?.mode || "server") === "server";
+    (filtersFromProp?.mode || 'server') === 'server'
   const isServerSideSortingEnabled =
-    (sortersFromProp?.mode || "server") === "server";
-  const prefferedCurrentPage = pagination?.currentPage;
-  const prefferedPageSize = pagination?.pageSize;
+    (sortersFromProp?.mode || 'server') === 'server'
+  const prefferedCurrentPage = pagination?.currentPage
+  const prefferedPageSize = pagination?.pageSize
 
-  const preferredInitialFilters = filtersFromProp?.initial;
+  const preferredInitialFilters = filtersFromProp?.initial
   const preferredPermanentFilters =
-    filtersFromProp?.permanent ?? defaultPermanentFilter;
+    filtersFromProp?.permanent ?? defaultPermanentFilter
 
-  const preferredInitialSorters = sortersFromProp?.initial;
+  const preferredInitialSorters = sortersFromProp?.initial
   const preferredPermanentSorters =
-    sortersFromProp?.permanent ?? defaultPermanentSorter;
+    sortersFromProp?.permanent ?? defaultPermanentSorter
 
-  const prefferedFilterBehavior = filtersFromProp?.defaultBehavior ?? "merge";
+  const prefferedFilterBehavior = filtersFromProp?.defaultBehavior ?? 'merge'
+
+  const preferredInitialColumnVisibility = columnVisibilityConfig?.initial ?? {}
+  const preferredPermanentColumnVisibility =
+    columnVisibilityConfig?.permanent ?? defaultPermanentColumnVisibility
 
   const parsed = useMemo(() => {
     if (!syncWithSearch) {
       return {
         parsedCurrentPage: undefined as number | undefined,
         parsedPageSize: undefined as number | undefined,
-        parsedSorter: [] as CrudSort[],
-        parsedFilters: [] as CrudFilter[],
-      };
+        parsedSorter: [] as Array<CrudSort>,
+        parsedFilters: [] as Array<CrudFilter>,
+      }
     }
-    return parseTableParams(normalizeSearchString(searchString));
-  }, [syncWithSearch, searchString]);
+    return parseTableParams(normalizeSearchString(searchString))
+  }, [syncWithSearch, searchString])
 
-  let defaultCurrentPage: number;
-  let defaultPageSize: number;
-  let defaultSorter: CrudSort[] | undefined;
-  let defaultFilter: CrudFilter[] | undefined;
+  let defaultCurrentPage: number
+  let defaultPageSize: number
+  let defaultSorter: Array<CrudSort> | undefined
+  let defaultFilter: Array<CrudFilter> | undefined
 
   if (syncWithSearch) {
     const { parsedCurrentPage, parsedPageSize, parsedSorter, parsedFilters } =
-      parsed;
-    defaultCurrentPage =
-      parsedCurrentPage || prefferedCurrentPage || 1;
-    defaultPageSize = parsedPageSize || prefferedPageSize || 10;
+      parsed
+    defaultCurrentPage = parsedCurrentPage || prefferedCurrentPage || 1
+    defaultPageSize = parsedPageSize || prefferedPageSize || 10
     defaultSorter =
-      parsedSorter.length > 0 ? parsedSorter : preferredInitialSorters;
+      parsedSorter.length > 0 ? parsedSorter : preferredInitialSorters
     defaultFilter =
-      parsedFilters.length > 0 ? parsedFilters : preferredInitialFilters;
+      parsedFilters.length > 0 ? parsedFilters : preferredInitialFilters
   } else {
-    defaultCurrentPage = prefferedCurrentPage || 1;
-    defaultPageSize = prefferedPageSize || 10;
-    defaultSorter = preferredInitialSorters;
-    defaultFilter = preferredInitialFilters;
+    defaultCurrentPage = prefferedCurrentPage || 1
+    defaultPageSize = prefferedPageSize || 10
+    defaultSorter = preferredInitialSorters
+    defaultFilter = preferredInitialFilters
   }
 
-  const [sorters, setSorters] = useState<CrudSort[]>(
+  const [sorters, setSorters] = useState<Array<CrudSort>>(
     setInitialSorters(preferredPermanentSorters, defaultSorter ?? []),
-  );
-  const [filters, setFilters] = useState<CrudFilter[]>(
+  )
+  const [filters, setFilters] = useState<Array<CrudFilter>>(
     setInitialFilters(preferredPermanentFilters, defaultFilter ?? []),
-  );
-  const [currentPage, setCurrentPage] = useState<number>(defaultCurrentPage);
-  const [pageSize, setPageSize] = useState<number>(defaultPageSize);
+  )
+  const [currentPage, setCurrentPage] = useState<number>(defaultCurrentPage)
+  const [pageSize, setPageSize] = useState<number>(defaultPageSize)
+  const [columnVisibility, setColumnVisibility] = useState<
+    Record<string, boolean>
+  >(() => ({
+    ...preferredPermanentColumnVisibility,
+    ...preferredInitialColumnVisibility,
+  }))
 
   useEffect(() => {
     if (!syncWithSearch) {
-      return;
+      return
     }
-    if (searchString === "") {
-      setCurrentPage(prefferedCurrentPage || 1);
-      setPageSize(prefferedPageSize || 10);
+    if (searchString === '') {
+      setCurrentPage(prefferedCurrentPage || 1)
+      setPageSize(prefferedPageSize || 10)
       setSorters(
         setInitialSorters(
           preferredPermanentSorters,
           preferredInitialSorters ?? [],
         ),
-      );
+      )
       setFilters(
         setInitialFilters(
           preferredPermanentFilters,
           preferredInitialFilters ?? [],
         ),
-      );
-      return;
+      )
+      return
     }
     if (searchString === undefined) {
-      return;
+      return
     }
-    const {
-      parsedCurrentPage,
-      parsedPageSize,
-      parsedSorter,
-      parsedFilters,
-    } = parseTableParams(normalizeSearchString(searchString));
+    const { parsedCurrentPage, parsedPageSize, parsedSorter, parsedFilters } =
+      parseTableParams(normalizeSearchString(searchString))
 
-    setCurrentPage(parsedCurrentPage || prefferedCurrentPage || 1);
-    setPageSize(parsedPageSize || prefferedPageSize || 10);
+    setCurrentPage(parsedCurrentPage || prefferedCurrentPage || 1)
+    setPageSize(parsedPageSize || prefferedPageSize || 10)
     setSorters(
       setInitialSorters(
         preferredPermanentSorters,
-        parsedSorter.length ? parsedSorter : preferredInitialSorters ?? [],
+        parsedSorter.length ? parsedSorter : (preferredInitialSorters ?? []),
       ),
-    );
+    )
     setFilters(
       setInitialFilters(
         preferredPermanentFilters,
-        parsedFilters.length ? parsedFilters : preferredInitialFilters ?? [],
+        parsedFilters.length ? parsedFilters : (preferredInitialFilters ?? []),
       ),
-    );
+    )
   }, [
     searchString,
     syncWithSearch,
@@ -218,18 +242,18 @@ export function useTableState({
     preferredPermanentFilters,
     preferredInitialSorters,
     preferredInitialFilters,
-  ]);
+  ])
 
   useEffect(() => {
     if (!onStateChange) {
-      return;
+      return
     }
     onStateChange({
       currentPage,
       pageSize,
       sorters: differenceWith(sorters, preferredPermanentSorters, isEqual),
       filters: differenceWith(filters, preferredPermanentFilters, isEqual),
-    });
+    })
   }, [
     onStateChange,
     currentPage,
@@ -238,82 +262,122 @@ export function useTableState({
     filters,
     preferredPermanentSorters,
     preferredPermanentFilters,
-  ]);
+  ])
 
   const setFiltersAsMerge = useCallback(
-    (newFilters: CrudFilter[]) => {
+    (newFilters: Array<CrudFilter>) => {
       setFilters((prevFilters) =>
         unionFilters(preferredPermanentFilters, newFilters, prevFilters),
-      );
+      )
     },
     [preferredPermanentFilters],
-  );
+  )
 
   const setFiltersAsReplace = useCallback(
-    (newFilters: CrudFilter[]) => {
-      setFilters(unionFilters(preferredPermanentFilters, newFilters));
+    (newFilters: Array<CrudFilter>) => {
+      setFilters(unionFilters(preferredPermanentFilters, newFilters))
     },
     [preferredPermanentFilters],
-  );
+  )
 
   const setFiltersWithSetter = useCallback(
-    (setter: (prevFilters: CrudFilter[]) => CrudFilter[]) => {
+    (setter: (prevFilters: Array<CrudFilter>) => Array<CrudFilter>) => {
       setFilters((prev) =>
         unionFilters(preferredPermanentFilters, setter(prev)),
-      );
+      )
     },
     [preferredPermanentFilters],
-  );
+  )
 
-  const setFiltersFn: UseTableStateReturn["setFilters"] = useCallback(
-    (setterOrFilters, behavior: SetFilterBehavior = prefferedFilterBehavior) => {
-      if (typeof setterOrFilters === "function") {
-        setFiltersWithSetter(setterOrFilters);
-      } else if (behavior === "replace") {
-        setFiltersAsReplace(setterOrFilters);
+  // Create debounced versions if debounceDelay is provided
+  const debouncedSetFiltersAsMerge = useDebouncedCallback(
+    setFiltersAsMerge,
+    debounceDelay,
+    [preferredPermanentFilters],
+  )
+
+  const debouncedSetFiltersAsReplace = useDebouncedCallback(
+    setFiltersAsReplace,
+    debounceDelay,
+    [preferredPermanentFilters],
+  )
+
+  const debouncedSetFiltersWithSetter = useDebouncedCallback(
+    setFiltersWithSetter,
+    debounceDelay,
+    [preferredPermanentFilters],
+  )
+
+  const setFiltersFn: UseTableStateReturn['setFilters'] = useCallback(
+    (
+      setterOrFilters,
+      behavior: SetFilterBehavior = prefferedFilterBehavior,
+    ) => {
+      // Use debounced versions if debounceDelay is provided and > 0
+      const mergeFn =
+        debounceDelay > 0 ? debouncedSetFiltersAsMerge : setFiltersAsMerge
+      const replaceFn =
+        debounceDelay > 0 ? debouncedSetFiltersAsReplace : setFiltersAsReplace
+      const setterFn =
+        debounceDelay > 0 ? debouncedSetFiltersWithSetter : setFiltersWithSetter
+
+      if (typeof setterOrFilters === 'function') {
+        setterFn(setterOrFilters)
+      } else if (behavior === 'replace') {
+        replaceFn(setterOrFilters)
       } else {
-        setFiltersAsMerge(setterOrFilters);
+        mergeFn(setterOrFilters)
       }
     },
-    [setFiltersWithSetter, setFiltersAsReplace, setFiltersAsMerge, prefferedFilterBehavior],
-  );
+    [
+      debouncedSetFiltersAsMerge,
+      debouncedSetFiltersAsReplace,
+      debouncedSetFiltersWithSetter,
+      setFiltersWithSetter,
+      setFiltersAsReplace,
+      setFiltersAsMerge,
+      prefferedFilterBehavior,
+      debounceDelay,
+    ],
+  )
 
   const setSortWithUnion = useCallback(
-    (newSorter: CrudSort[]) => {
-      setSorters(() => unionSorters(preferredPermanentSorters, newSorter));
+    (newSorters: Array<CrudSort>) => {
+      setSorters(() => unionSorters(preferredPermanentSorters, newSorters))
     },
     [preferredPermanentSorters],
-  );
+  )
 
-  const getServerListParams =
-    useCallback((): ReturnType<UseTableStateReturn["getServerListParams"]> => {
-      return {
-        pagination: { currentPage, pageSize, mode: pagination?.mode },
-        filters: isServerSideFilteringEnabled
-          ? unionFilters(preferredPermanentFilters, filters)
-          : undefined,
-        sorters: isServerSideSortingEnabled
-          ? unionSorters(preferredPermanentSorters, sorters)
-          : undefined,
-      };
-    }, [
-      currentPage,
-      pageSize,
-      pagination?.mode,
-      isServerSideFilteringEnabled,
-      preferredPermanentFilters,
-      filters,
-      isServerSideSortingEnabled,
-      preferredPermanentSorters,
-      sorters,
-    ]);
+  const getServerListParams = useCallback((): ReturnType<
+    UseTableStateReturn['getServerListParams']
+  > => {
+    return {
+      pagination: { currentPage, pageSize, mode: pagination?.mode },
+      filters: isServerSideFilteringEnabled
+        ? unionFilters(preferredPermanentFilters, filters)
+        : undefined,
+      sorters: isServerSideSortingEnabled
+        ? unionSorters(preferredPermanentSorters, sorters)
+        : undefined,
+    }
+  }, [
+    currentPage,
+    pageSize,
+    pagination?.mode,
+    isServerSideFilteringEnabled,
+    preferredPermanentFilters,
+    filters,
+    isServerSideSortingEnabled,
+    preferredPermanentSorters,
+    sorters,
+  ])
 
   return {
     modes: {
-      filters: (filtersFromProp?.mode || "server") as "server" | "off",
-      sorters: (sortersFromProp?.mode || "server") as "server" | "off",
-      pagination: (pagination?.mode || "server") as NonNullable<
-        Pagination["mode"]
+      filters: (filtersFromProp?.mode || 'server'),
+      sorters: (sortersFromProp?.mode || 'server'),
+      pagination: (pagination?.mode || 'server') as NonNullable<
+        Pagination['mode']
       >,
     },
     sorters,
@@ -324,6 +388,8 @@ export function useTableState({
     setCurrentPage,
     pageSize,
     setPageSize,
+    columnVisibility,
+    setColumnVisibility,
     getServerListParams,
-  };
+  }
 }

@@ -10,16 +10,17 @@ import {
 import { useNavigate } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import { z } from 'zod'
+import type {
+  ListMembersSchema} from '@/sfn/organization/members';
 import {
   addOrganizationMemberDirectly,
   leaveOrganization,
 } from '@/sfn/organization'
 import { OrgRoles } from '@/sfn/organization/org-roles'
 import {
-  ListMembersSchema,
   listOrganizationMembersQO,
-  updateMemberRole,
   removeOrganizationMember,
+  updateMemberRole,
 } from '@/sfn/organization/members'
 import { createOrganizationInvitation } from '@/sfn/organization/invitations'
 import {
@@ -106,7 +107,7 @@ export function OrganizationMembersPanel({
 
   const { data } = useSuspenseQuery(listOrganizationMembersQO(listParams))
 
-  const members = (data?.members ?? []) as MemberRow[]
+  const members = (data?.members ?? []) as Array<MemberRow>
   const myMembership = members.find((m) => m.userId === currentUserId)
   const myRole = myMembership?.role ?? 'member'
   const manage = canManageMembers(myRole)

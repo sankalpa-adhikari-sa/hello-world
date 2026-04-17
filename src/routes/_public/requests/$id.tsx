@@ -8,10 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 import { REQUEST_TYPE } from '@/constants/enums'
 import { getRequestDetailBody } from '@/lib/request-content-preview'
-import {
-  getRequestById,
-  requestsPublicListDefaultSearch,
-} from '@/sfn/requests'
+import { getRequestById, requestsPublicListDefaultSearch } from '@/sfn/requests'
 import { getOptionalCurrentUser } from '@/sfn/users'
 
 export const Route = createFileRoute('/_public/requests/$id')({

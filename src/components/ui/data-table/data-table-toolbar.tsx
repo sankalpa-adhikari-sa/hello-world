@@ -1,9 +1,8 @@
-import type { ReactNode } from 'react'
 import { SlidersHorizontal, XIcon } from 'lucide-react'
-import type { ColumnFiltersState } from '@tanstack/react-table'
 import { DataTableFacetedFilter } from './data-table-faceted-filter'
 import { DataTableSimpleFilter } from './data-table-simple-filter'
-import type { Table } from '@tanstack/react-table'
+import type { ColumnFiltersState, Table  } from '@tanstack/react-table'
+import type { ReactNode } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -284,7 +283,9 @@ export function DataTableToolbar<TData>({
               </PopoverHeader>
               <div className="flex flex-col gap-4 border-t border-border/60 pt-3">
                 {hasExtras ? (
-                  <div className="flex flex-col gap-3">{serverToolbarExtras}</div>
+                  <div className="flex flex-col gap-3">
+                    {serverToolbarExtras}
+                  </div>
                 ) : null}
                 {hasColumnFilters ? (
                   <div className="flex flex-col gap-3">{filterControls}</div>

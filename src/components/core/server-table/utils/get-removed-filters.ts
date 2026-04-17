@@ -1,48 +1,56 @@
-import type { CrudFilter, LogicalFilter } from "../types";
+import { isConditionalFilter, isLogicalFilter } from '../types'
+import type { CrudFilter } from '../types'
 
 type Params = {
-  nextFilters: CrudFilter[];
-  coreFilters: CrudFilter[];
-};
+  nextFilters: Array<CrudFilter>
+  coreFilters: Array<CrudFilter>
+}
 
 export const getRemovedFilters = ({
   nextFilters,
   coreFilters,
-}: Params): CrudFilter[] => {
+}: Params): Array<CrudFilter> => {
   const removedFilters = coreFilters.filter(
     (filter) =>
       !nextFilters.some((nextFilter) => {
-        const isFilterConditional =
-          filter.operator === "and" || filter.operator === "or";
-        const isCrudFilterConditional =
-          nextFilter.operator === "and" || nextFilter.operator === "or";
-        const hasSameOperator = filter.operator === nextFilter.operator;
-        const hasSameKey =
-          isFilterConditional &&
-          isCrudFilterConditional &&
-          filter.key === nextFilter.key;
-        const hasSameField =
+        const isFilterConditional = isConditionalFilter(filter)
+        const isCrudFilterConditional = isConditionalFilter(nextFilter)
+        const hasSameOperator = filter.operator === nextFilter.operator
+
+        if (isFilterConditional && isCrudFilterConditional) {
+          return hasSameOperator && filter.key === nextFilter.key
+        }
+
+        if (
           !isFilterConditional &&
           !isCrudFilterConditional &&
-          (filter as LogicalFilter).field ===
-            (nextFilter as LogicalFilter).field;
+          isLogicalFilter(filter) &&
+          isLogicalFilter(nextFilter)
+        ) {
+          return hasSameOperator && filter.field === nextFilter.field
+        }
 
-        return hasSameOperator && (hasSameKey || hasSameField);
+        return false
       }),
-  );
+  )
 
   return removedFilters.map((filter) => {
-    if (filter.operator === "and" || filter.operator === "or") {
+    if (isConditionalFilter(filter)) {
       return {
         key: filter.key,
         operator: filter.operator,
         value: [],
-      };
+      }
     }
-    return {
-      field: (filter as LogicalFilter).field,
-      operator: filter.operator,
-      value: undefined,
-    };
-  });
-};
+
+    if (isLogicalFilter(filter)) {
+      return {
+        field: filter.field,
+        operator: filter.operator,
+        value: undefined,
+      }
+    }
+
+    return filter
+  })
+}

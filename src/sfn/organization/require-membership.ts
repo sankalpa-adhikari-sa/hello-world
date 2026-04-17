@@ -1,8 +1,8 @@
 import { and, eq } from 'drizzle-orm'
 
+import type { OrgRoles } from '@/sfn/organization/org-roles'
 import { member } from '@/db/schema/auth.schema'
 import { db } from '@/db'
-import { OrgRoles } from '@/sfn/organization/org-roles'
 
 /**
  * Fetch the membership record of a user within a specific organization.
@@ -63,7 +63,7 @@ export async function requireOrgMembership(
 export async function requireRole(
   userId: string,
   organizationId: string,
-  roles: (typeof OrgRoles)[number][],
+  roles: Array<(typeof OrgRoles)[number]>,
 ) {
   const membership = await requireOrgMembership(userId, organizationId)
 

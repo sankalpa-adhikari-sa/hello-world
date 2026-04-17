@@ -1,39 +1,45 @@
-import type { ColumnDef, ColumnFilter } from "@tanstack/react-table";
+import { isConditionalFilter, isLogicalFilter } from '../types'
+import type { ColumnDef, ColumnFilter } from '@tanstack/react-table'
 
-import type { CrudFilter, LogicalFilter } from "../types";
+import type { CrudFilter } from '../types'
 
 type Params<TData> = {
-  columns: ColumnDef<TData, unknown>[];
-  crudFilters: CrudFilter[];
-};
+  columns: Array<ColumnDef<TData, unknown>>
+  crudFilters: Array<CrudFilter>
+}
 
 export const crudFiltersToColumnFilters = <TData = unknown>({
   columns,
   crudFilters,
-}: Params<TData>): ColumnFilter[] => {
+}: Params<TData>): Array<ColumnFilter> => {
   return crudFilters
     .map((filter) => {
-      if (filter.operator === "and" || filter.operator === "or") {
+      if (isConditionalFilter(filter)) {
         if (filter.key) {
           const filterId: string =
             columns.find(
               (col) =>
                 (col.meta as { filterKey?: string })?.filterKey === filter.key,
-            )?.id ?? filter.key;
+            )?.id ?? filter.key
 
           return {
             id: filterId,
             operator: filter.operator,
             value: filter.value,
-          };
+          }
         }
-        return undefined;
+        return undefined
       }
-      return {
-        id: (filter as LogicalFilter).field,
-        operator: (filter as LogicalFilter).operator,
-        value: filter.value,
-      };
+
+      if (isLogicalFilter(filter)) {
+        return {
+          id: filter.field,
+          operator: filter.operator,
+          value: filter.value,
+        }
+      }
+
+      return undefined
     })
-    .filter(Boolean) as ColumnFilter[];
-};
+    .filter(Boolean) as Array<ColumnFilter>
+}

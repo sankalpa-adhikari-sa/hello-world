@@ -1,16 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 import { keepPreviousData, queryOptions } from '@tanstack/react-query'
-import {
-  and,
-  asc,
-  count,
-  desc,
-  eq,
-  ilike,
-  inArray,
-  or,
-  sql,
-} from 'drizzle-orm'
+import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { getCurrentUser } from './users'
@@ -78,8 +68,6 @@ function toFundAProjectOutput(row: FundWithJoins): FundAProjectOutput {
   })
 }
 
-
-
 async function loadFundAProjectWithJoins(
   id: string,
 ): Promise<FundAProjectOutput | null> {
@@ -92,7 +80,6 @@ async function loadFundAProjectWithJoins(
   })
   return row ? toFundAProjectOutput(row) : null
 }
-
 
 export const getFundAProjectById = createServerFn({ method: 'GET' })
   .inputValidator((data: unknown) => getFundAProjectByIdInputSchema.parse(data))
@@ -123,8 +110,8 @@ export function parseFundAPublicLevelsFromSearch(
 ): Array<FundProjectLevelValue> {
   const rawLevels = parseCommaList(search.levels)
   return rawLevels.filter((l) =>
-    PROJECT_LEVEL_SET.has(l as FundProjectLevelValue),
-  ) as Array<FundProjectLevelValue>
+    PROJECT_LEVEL_SET.has(l),
+  )
 }
 
 export function parseFundAPublicTagIdsFromSearch(
@@ -146,7 +133,6 @@ export function fundAPublicListHasActiveFilters(
   return false
 }
 
-
 export function fundAPublicSearchToListInput(
   search: FundAPublicListSearch,
 ): GetFundAProjectsInput {
@@ -167,7 +153,6 @@ export function fundAPublicSearchToListInput(
 }
 
 const urgencyOrderSql = sql`CASE WHEN ${fundAProject.targetAmount} > 0 THEN (${fundAProject.fundedAmount}::numeric / NULLIF(${fundAProject.targetAmount}, 0)) ELSE 1 END`
-
 
 export const getFundAProjects = createServerFn({ method: 'GET' })
   .inputValidator((data: unknown) =>
@@ -262,7 +247,6 @@ export const getFundAProjectsQO = (
   })
 }
 
-
 export const createFundAProject = createServerFn({ method: 'POST' })
   .inputValidator((data: unknown) => fundAProjectInputSchema.parse(data))
   .handler(async ({ data }) => {
@@ -308,7 +292,6 @@ export const createFundAProject = createServerFn({ method: 'POST' })
       return full ? toFundAProjectOutput(full) : null
     })
   })
-
 
 export const updateFundAProject = createServerFn({ method: 'POST' })
   .inputValidator((data: unknown) => updateFundAProjectInputSchema.parse(data))

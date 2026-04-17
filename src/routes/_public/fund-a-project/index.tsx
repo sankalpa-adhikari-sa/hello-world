@@ -4,7 +4,10 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import LandingPageHero from '@/components/core/cards/landing'
 import { FundAProjectPublicList } from '@/components/core/fund-a-project/fund-a-project-public-list'
-import { fundAPublicSearchToListInput, getFundAProjectsQO } from '@/sfn/fund-a-project'
+import {
+  fundAPublicSearchToListInput,
+  getFundAProjectsQO,
+} from '@/sfn/fund-a-project'
 import { listTagsForRequestsFormQO } from '@/sfn/requests'
 import { fundAPublicListSearchSchema } from '@/types/fund-a-project'
 

@@ -122,15 +122,14 @@ export const deleteTag = createServerFn({ method: 'POST' })
     return { deleted: Boolean(removed), id: removed?.id ?? null }
   })
 
-
-  export async function assertAllTagIdsExist(tagIds: Array<string>) {
-    if (tagIds.length === 0) return
-    const unique = [...new Set(tagIds)]
-    const rows = await db
-      .select({ id: tags.id })
-      .from(tags)
-      .where(inArray(tags.id, unique))
-    if (rows.length !== unique.length) {
-      throw new Error('One or more tag IDs are invalid')
-    }
+export async function assertAllTagIdsExist(tagIds: Array<string>) {
+  if (tagIds.length === 0) return
+  const unique = [...new Set(tagIds)]
+  const rows = await db
+    .select({ id: tags.id })
+    .from(tags)
+    .where(inArray(tags.id, unique))
+  if (rows.length !== unique.length) {
+    throw new Error('One or more tag IDs are invalid')
   }
+}

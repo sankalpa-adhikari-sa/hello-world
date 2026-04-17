@@ -43,7 +43,9 @@ export type FundAProjectOutput = z.infer<typeof fundAProjectOutputSchema>
 export const updateFundAProjectInputSchema = fundAProjectInputSchema.extend({
   id: z.uuid(),
 })
-export type UpdateFundAProjectInput = z.infer<typeof updateFundAProjectInputSchema>
+export type UpdateFundAProjectInput = z.infer<
+  typeof updateFundAProjectInputSchema
+>
 
 export const getFundAProjectByIdInputSchema = z.object({
   id: z.uuid(),

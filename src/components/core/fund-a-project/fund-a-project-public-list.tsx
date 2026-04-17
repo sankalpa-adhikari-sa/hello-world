@@ -119,8 +119,14 @@ function FundAProjectPublicListBody({
   })
 
   const listInput = useMemo(
-    () => getFundAProjectsListInputFromPublicSearchAndTable(search, serverTable),
-    [search, serverTable.currentPage, serverTable.pageSize, serverTable.sorters],
+    () =>
+      getFundAProjectsListInputFromPublicSearchAndTable(search, serverTable),
+    [
+      search,
+      serverTable.currentPage,
+      serverTable.pageSize,
+      serverTable.sorters,
+    ],
   )
 
   const { data: fundAProjectData } = useSuspenseQuery(
